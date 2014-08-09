@@ -1,0 +1,13 @@
+/*
+ *	Theme Name: AndrewHeins v2
+ *	Description: Theme for the website of Andrew Heins
+ *	Author: Andrew Heins
+ *	Author URI: http://www.andrewheins.ca/
+ */
+
+ @import 'css/normalize.css';
+ @import 'css/960.css';
+ @import 'css/wordpress-core.css';
+ @import 'css/style.css';
+ 
+ 
