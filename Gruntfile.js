@@ -13,7 +13,7 @@ module.exports = function(grunt) {
 				},
 				files: {
 					// target.css file: source.less file
-					rootPath + "/style.css": assetPath + "/css/main.less"
+					"wp-content/themes/theme/style.css": assetPath + "/css/main.less"
 				}
 			}
 		},

@@ -33,14 +33,14 @@
 body {
 	&:extend(.sans);
 	&:extend(.medium-text all);
-	color: @greyDark;
+	color: @dark;
 	font-weight: 400;
 }
 
 a {
 
 	&:extend(.standard-transition);
-	color: @greyDark;
+	color: @dark;
 
 	.no-touch &:hover, &.fast-active {
 		color: @grey;
@@ -142,46 +142,10 @@ em, .em {}
  * Heading Styles
  */
 
-.h1 {
+.h1 {}
 
-	&:extend(.condensed);
-	&:extend(.caps);
-	font-weight: bold;
-	font-size: 28px;
-	line-height: 32px;
+.h2, .text-block h2 {}
 
-}
+.h3, .text-block h3 {}
 
-.h2, .text-block h2 {
-	font-weight: 600;
-	font-size: 24px;
-	line-height: 32px;
-}
-
-.h3, .text-block h3 {
-
-	&:extend(.condensed);
-	&:extend(.caps);
-	font-weight: 400;
-	font-size: 16px;
-	line-height: 16px;
-
-	@media only screen and (min-width: 480px) {
-		font-size: 22px;
-		line-height: 22px;
-	}
-
-	&[style-color="blue"] {
-		color: @blue;
-	}
-
-	&[style-color="grey-light"] {
-		color: @grey;
-	}
-
-}
-
-.h4, .text-block h4 {
-	font-size: 20px;
-	line-height: 20px;
-}
+.h4, .text-block h4 {}
