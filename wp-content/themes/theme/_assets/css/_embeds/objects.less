@@ -1,0 +1,16 @@
+/*
+ * Modules
+ */
+
+.mod {
+	margin: @contentPadding;
+	& > .hd, & > .bd, & > .ft {
+		.clearfix();
+	}
+	& > .hd {
+		margin-bottom: @contentPadding;
+	}
+	& > .ft {
+		margin-top: @contentPadding;
+	}
+}
