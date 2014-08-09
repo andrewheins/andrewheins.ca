@@ -1,0 +1,39 @@
+/*****************************************************************/
+/*************************** UI Helpers **************************/
+/*****************************************************************/
+
+
+/*
+ * Media Blocks
+ * Use to float media one way or the other when the main content should not wrap around it
+ */
+
+.media-block {
+
+	&:extend(.clearfix all);
+
+	& > .media {
+	
+		float: left;
+		margin-right: @contentPadding;
+	
+		& > img {
+			display: block;
+			border: 3px solid rgba(0, 0, 0, .1);
+		}
+	
+	}
+	
+	& > .bd {
+		overflow: hidden;
+	}
+	
+	&[style-alignment="right"] {
+		& > .media {
+			float: right;
+			margin-left: @contentPadding;
+			margin-right: 0;
+		}
+	}
+
+}

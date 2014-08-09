@@ -10,7 +10,20 @@ Version: 1.0
  * Variables
  */
 
-@contentPadding: 16px;
+@contentPadding:  16px;
+
+
+@dark:			#555;
+@grey:          #888;
+@light:       	#aaa;
+
+
+@retina:		  ~"only screen and (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 192dpi)";
+
+@minWidth:		320px;
+@fullWidth:		1600px;
+@innerWidth: 	1080px;
+@secondInnerWidth: 	880px;
 
 
 
@@ -18,9 +31,10 @@ Version: 1.0
  * Imports
  */
 
-@import "_embeds/reset";
-@import "_embeds/mixins";
-@import "_embeds/typography";
-@import "_embeds/layout";
-@import "_embeds/objects";
-@import "_embeds/special";
+@import "reset";
+@import "mixins";
+@import "typography";
+@import "app";
+@import "objects";
+@import "legos";
+@import "special";

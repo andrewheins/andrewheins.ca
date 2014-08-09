@@ -1,0 +1,66 @@
+/*****************************************************************/
+/**************************** Layout *****************************/
+/*****************************************************************/
+
+/*
+ * Modules
+ */
+
+.mod {
+
+	margin: @contentPadding;
+
+	@media only screen and (min-width: 800px) {
+		margin: @contentPadding * 1.5;
+	}
+
+    & > .hd, & > .bd, & > .ft {
+		&:extend(.clearfix all);
+	}
+
+    & > .hd {
+
+		margin-bottom: @contentPadding;
+
+		& > .aux {
+
+		}
+
+	}
+
+    & > .ft {
+		margin-top: @contentPadding;
+	}
+
+}
+
+
+
+/*
+ * General List Styles
+ * Lots of extensions and overrides to suit most situations. We should rarely have to build custom list objects.
+ */
+
+ul.list {
+
+    & > li + li {
+    	margin-top: @contentPadding;
+    }
+
+}
+
+.horizontal-list {
+
+    &:extend(.clearfix all);
+
+	li {
+		
+		float: left;
+
+		& + li {
+			margin-left: 8px;
+		}
+
+	}
+	
+}
