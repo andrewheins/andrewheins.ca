@@ -35,4 +35,16 @@
 		return $post_object;
 	}
 	
+	function cl_setup_global_postdata( $array ) {
+		$full_posts = array();
+		
+		foreach( $array as $post_obj ) {
+			$full_posts[] = cl_setup_postdata( $post_obj );
+
+		}
+
+		return $full_posts;
+
+	}
+	
 	

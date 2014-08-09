@@ -1,11 +1,11 @@
-/**
- ** MIXINS
- **/
-
-
 /*
- * Simple Utilities
+ * Mixins are reusable classes that can be extended
  */
+
+
+/* ==========================================================================
+   Simple Utilities
+   ========================================================================== */
 
 .clearfix {
 	*zoom: 1;
@@ -27,13 +27,6 @@
 	user-select: none;
    	cursor: default;
 }
-
-// .transition(...) {
-// 	-webkit-transition: @{arguments};
-// 	-moz-transition: @{arguments};
-// 	-ms-transition: @{arguments};
-// 	transition: @{arguments};
-// }
 
 .prefix(@property, @value) {
     // -:~";-webkit-@{property}: @{value}; -o-@{property}: @{value}; -moz-@{property}: @{value}; @{property}: @{value};";
@@ -76,7 +69,6 @@
 		background-image: url("_assets/img/global-sprite@2x.png");
 		background-size: 0px 0px;
 	}
-
 
 }
 
