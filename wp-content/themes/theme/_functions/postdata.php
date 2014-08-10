@@ -1,7 +1,35 @@
 <?php
 
+/* ==========================================================================
+   Setup Post Meta
+   All the meta available on the post object.
+   ========================================================================== */
+
+	if(! is_admin() ) {
+		add_filter( 'the_posts', 'cl_setup_global_postdata' );
+	}
+	
 	/*
-	 *	Post Setup
+	 * Setup ALL the posts
+	 */
+	 
+	function cl_setup_global_postdata( $array ) {
+		$full_posts = array();
+		
+		foreach( $array as $post_obj ) {
+			$full_posts[] = cl_setup_postdata( $post_obj );
+
+		}
+
+		return $full_posts;
+
+	}
+
+
+
+	/*
+	 * Post One Post
+	 * Caching conveniently included
 	 */
 	function cl_setup_postdata( $post_object ) {
 		
@@ -34,17 +62,3 @@
 		
 		return $post_object;
 	}
-	
-	function cl_setup_global_postdata( $array ) {
-		$full_posts = array();
-		
-		foreach( $array as $post_obj ) {
-			$full_posts[] = cl_setup_postdata( $post_obj );
-
-		}
-
-		return $full_posts;
-
-	}
-	
-	

@@ -1,13 +1,26 @@
 <?php
 
+/* ==========================================================================
+   General Settings
+   ========================================================================== */
+
 	/*
 	 * Asset Path
 	 */
 
 	define("ASSET_PATH", get_template_directory_uri() . "/_assets"); // Global constant definition
 	function cl_asset_path() { echo ASSET_PATH; } // Wrapper for using this constant in templates with normal WP style
+	
+	
+	
+/* ==========================================================================
+   WordPress Cleanup
+   ========================================================================== */
 
-	// remove unncessary header info
+	/*
+	 * Remove Header Cruft
+	 */
+	 
 	function remove_header_info() {
 	    remove_action('wp_head', 'rsd_link');
 	    remove_action('wp_head', 'wlwmanifest_link');
@@ -18,13 +31,25 @@
 	}
 	add_action('init', 'remove_header_info');
 	
+	
+	
+	/*
+	 * Remove Admin Bar for all users outside admin section
+	 */
+	 
 	if( !is_admin() ) {
 		add_filter('show_admin_bar', '__return_false');
 	}
 	
+	
+/* ==========================================================================
+   Details and Nicities
+   ========================================================================== */
+   
 	/*
-	// Customize Logo
-	add_action("login_head", "my_login_head");
+	 * Customize Logo on Login Screen
+	 */
+
 	function my_login_head() {
 		echo("
 		<style>
@@ -36,7 +61,9 @@
 		</style>
 		");
 	}
-*/
+	
+	// add_action("login_head", "my_login_head");
+
 
 
 	/*
@@ -51,49 +78,27 @@
 	add_action('login_head', 'add_favicon');
 	add_action('admin_head', 'add_favicon');
 
-	//add_image_size( "small-cropped", 	320, 240, true );
 
 
+/* ==========================================================================
+   WordPress Settings
+   ========================================================================== */
+	
 	/*
-	 * Styles and Scripts
+	 * Image Sizes
 	 */
+	 
+	// add_image_size( "small-cropped", 	320, 240, true );
 
-	function cl_styles(){
 
-		// require_once('_lib/lessphp/Less.php');
 
-		// $global_styles_path = get_template_directory() . "/_assets/css/main.less";
-		// $target_path = get_template_directory() . "/style.css";
-
-		// try{
-		// 	$less_files = array( $global_styles_path => "/wp-content/themes/rustic_pathways" );
-		// 	$options = array(
-		// 		"cache_dir" => $_SERVER['DOCUMENT_ROOT'] . "/wp-content/cache/less_cache/",
-		// 		"compress" => ENV === "PRODUCTION"
-		// 	);
-		// 	$css_file_name = Less_Cache::Get( $less_files, $options );
-		// } catch(Exception $e) {
-		//     echo "<pre>" . $e->getMessage() . "</pre>";
-		// }
-
-		// wp_register_style(
-		// 	'global-styles',
-		// 	"/wp-content/cache/less_cache/" . $css_file_name,
-		// 	array(),
-		// 	"1.0"
-		// );
-		// wp_enqueue_style('global-styles');
-		
-		// wp_register_style(
-		// 	'global-styles',
-		// 	"/wp-content/themes/rustic_pathways/style.css",
-		// 	array(),
-		// 	"1.0"
-		// );
-		// wp_enqueue_style('global-styles');
-
-	}
-	add_action('wp_enqueue_scripts', 'cl_styles');
+/* ==========================================================================
+   Scripts and Styles
+   ========================================================================== */
+   
+	/*
+	 * Enqueue Javascript from CDN
+	 */
 
 	function cl_enqueue_jquery() {
 		if (!is_admin()) {
@@ -102,8 +107,15 @@
 			wp_enqueue_script('jquery');
 		}
 	}
+
 	add_action( 'wp_enqueue_scripts', 'cl_enqueue_jquery', 9 );
 
+
+
+	/*
+	 * Load All Scripts via enqueue
+	 */
+	 
 	function cl_scripts(){
 	
 		// In Production, add analytics to the header
@@ -125,4 +137,5 @@
 		wp_enqueue_script("general");
 	
 	}
+	
 	add_action('wp_enqueue_scripts', 'cl_scripts');
