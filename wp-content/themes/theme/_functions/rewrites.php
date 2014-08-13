@@ -39,7 +39,7 @@
 	
 		$public_query_vars = array_merge( $public_query_vars, array(
 			// 'bar',
-		);
+		) );
 		
 		return $public_query_vars;
 		

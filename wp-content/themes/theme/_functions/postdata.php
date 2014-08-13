@@ -45,14 +45,18 @@
 					
 				$post_object->post_type_object = get_post_type_object( get_post_type() );
 				
-				$temp = get_fields( $post_object->ID );
+				if( function_exists( 'get_fields' ) ) { 
 				
-				if(! empty( $temp ) ) {
-					foreach( $temp as $key => $value ) {
-						if(! empty( $key ) ) {
-				        	$post_object->$key = $value;
-				        }
+					$temp = get_fields( $post_object->ID );
+					
+					if(! empty( $temp ) ) {
+						foreach( $temp as $key => $value ) {
+							if(! empty( $key ) ) {
+					        	$post_object->$key = $value;
+					        }
+					    }
 				    }
+			    
 			    }
 			    
 			    wp_cache_set( 'post_obj_' . $post_object->ID, $post_object, 'post_objs' );
