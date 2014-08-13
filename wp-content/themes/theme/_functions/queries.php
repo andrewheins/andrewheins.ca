@@ -7,7 +7,7 @@
 
 	function index_post_query( $query ) {
 	
-		if (!is_admin() && $query->is_main_query()){
+		if ( !is_admin() && $query->is_main_query() ){
 		
 		}
 		

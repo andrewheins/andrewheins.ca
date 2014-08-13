@@ -1,5 +1,9 @@
 <?php
 
+	/*
+	 * Functions that add or modify data on a post object go here.
+	 */
+
 /* ==========================================================================
    Setup Post Meta
    All the meta available on the post object.
