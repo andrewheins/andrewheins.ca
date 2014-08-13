@@ -1,7 +1,7 @@
 /*
  * Scripts in this file run before the </body> tag
  */
- 
+
  
 
 /* ==========================================================================
@@ -107,7 +107,7 @@ $(function() {
 		var $this = $(this);
 		
 		Modernizr.load({
-			load: "/wp-content/themes/theme/_assets/js/output/file.min.js",
+			load: "/wp-content/themes/your_theme_slug/_assets/js/output/file.min.js",
 			complete: function() {
 				var obj = new Site.Views.Thing({
 					"el" : $this

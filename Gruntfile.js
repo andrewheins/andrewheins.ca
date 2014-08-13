@@ -1,4 +1,4 @@
-var rootPath = "wp-content/themes/theme",
+var rootPath = "wp-content/themes/your_theme_slug",
 	assetPath = rootPath + "/_assets";
 
 
@@ -13,7 +13,7 @@ module.exports = function(grunt) {
 				},
 				files: {
 					// target.css file: source.less file
-					"wp-content/themes/theme/style.css": assetPath + "/css/main.less"
+					"wp-content/themes/your_theme_slug/style.css": assetPath + "/css/main.less"
 				}
 			}
 		},
@@ -25,7 +25,7 @@ module.exports = function(grunt) {
 				},
 			    files: {
 			    	// JS that fires just before the closing </body> tag goes in global
-					"wp-content/themes/theme/_assets/js/output/global.min.js": [
+					"wp-content/themes/your_theme_slug/_assets/js/output/global.min.js": [
 						//assetPath + "/js/lib/underscore.js",
 						//assetPath + "/js/lib/backbone.js",
 						//assetPath + "/js/lib/fast-active.js",
@@ -36,7 +36,7 @@ module.exports = function(grunt) {
 						
 					],
 					// JS that fires in wp_head goes in preload
-					"wp-content/themes/theme/_assets/js/output/preload.min.js": [
+					"wp-content/themes/your_theme_slug/_assets/js/output/preload.min.js": [
 		                assetPath + "/js/lib/modernizr.js",
 		                //assetPath + "/js/lib/picturefill.js"
 					]
@@ -50,7 +50,7 @@ module.exports = function(grunt) {
 		            type: 'screen'
 		        },
 	            files: {
-	                'wp-content/themes/theme/style-desktop.css': ['wp-content/themes/theme/style.css']
+	                'wp-content/themes/your_theme_slug/style-desktop.css': ['wp-content/themes/your_theme_slug/style.css']
 	            }
 	    	},
 	    },

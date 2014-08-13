@@ -16,10 +16,10 @@
 	<?php wp_head(); ?>
 	
 	<!--[if IE 8]>
-		<link rel="stylesheet" type="text/css" href="/wp-content/themes/theme/style-desktop.css" />
+		<link rel="stylesheet" type="text/css" href="/wp-content/themes/your_theme_slug/style-desktop.css" />
 	<![endif]-->
 	<!--[if gt IE 8]><!-->
-		<link rel="stylesheet" href="/wp-content/themes/theme/style.css" />
+		<link rel="stylesheet" href="/wp-content/themes/your_theme_slug/style.css" />
 	<!--<![endif]-->
 
     <script>
