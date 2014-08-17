@@ -19,4 +19,12 @@ Usage Instructions
 
 5. start `grunt`
 
-6. Go forth and prosper!
+6. Create a database for the site to use
+
+7. Create a virtual host in Apache
+
+8. Load the site in a web browser. WordPress should create a wp-config file for you from the wp-config-sample, which is what we want.
+
+9. Complete the WordPress Installation
+
+10. Done! Go build stuff.
