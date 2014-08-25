@@ -17,3 +17,14 @@
 		include( locate_template( '_embeds/' . $post_type . '.php' ) );
 		
 	}
+	
+	function cl_embed_no_content( $post_type = null ) {
+		
+		$slug = '_embeds/no-content.php';
+		
+		if( !empty( $post_type) ) {
+			$slug = '_embeds/no-content-' . $post_type . '.php';
+		}
+		
+		include( locate_template( $slug ) );
+	}

@@ -1,3 +1,8 @@
+<?php 
+	// Get global options for recurring use.
+	global $data;
+	$data = _s_get_theme_options();
+?>
 <!DOCTYPE html>
 <!--[if lte IE 7]><html id="html" class="ie7 deprecated"><![endif]-->
 <!--[if IE 8]><html id="html" class="ie8"><![endif]-->
@@ -16,10 +21,10 @@
 	<?php wp_head(); ?>
 	
 	<!--[if IE 8]>
-		<link rel="stylesheet" type="text/css" href="/wp-content/themes/your_theme_slug/style-desktop.css" />
+		<link rel="stylesheet" type="text/css" href="/wp-content/themes/andrewheins/style-desktop.css" />
 	<![endif]-->
 	<!--[if gt IE 8]><!-->
-		<link rel="stylesheet" href="/wp-content/themes/your_theme_slug/style.css" />
+		<link rel="stylesheet" href="/wp-content/themes/andrewheins/style.css" />
 	<!--<![endif]-->
 
     <script>
@@ -63,13 +68,9 @@
 	
 </head>
 <body <?php body_class(); ?>>
-
-	<noscript>
-		<header id="no-script-header">
-			It looks like Javascript is not enabled in your browser. This site requires javascript for full functionality. Please <a href="http://www.enable-javascript.com/">enable Javascript</a> to view this site as intended.
-		</header>
-	</noscript>
 	
-	<header id="page-header">
-		<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+	<header class="page-header">
+		<div class="inner">
+			<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+		</div>
 	</header>
