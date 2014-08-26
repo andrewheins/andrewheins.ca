@@ -13,7 +13,7 @@
 	margin: @contentPadding;
 
 	@media only screen and (min-width: 800px) {
-		margin: @contentPadding * 1.5;
+		margin: @contentPadding;
 	}
 
     & > .hd, & > .bd, & > .ft {
@@ -60,9 +60,41 @@ ul.list {
 		float: left;
 
 		& + li {
-			margin-left: 8px;
+			margin-left: @contentPadding/3;
 		}
 
+	}
+	
+}
+
+
+
+/* ==========================================================================
+   Articles
+   Articles act like mods in many ways, but contain text-oriented content.
+   ========================================================================== */
+
+.article {
+
+	max-width: 640px;
+
+	& > .hd, & > .bd, & > .ft {
+		&:extend(.clearfix all);
+	}
+
+    & > .hd {
+
+		margin-bottom: @contentPadding;
+
+		& > .aux {
+
+		}
+
+	}
+
+    & > .ft {
+		margin-top: @contentPadding;
+		&:extend(.small-text all);
 	}
 	
 }

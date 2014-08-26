@@ -5,7 +5,7 @@
 		<?php if( have_posts() ) : ?>
 			<?php while( have_posts() ) : the_post(); ?>
 			<div class="mod text-block">
-				content
+				<?php cl_embed_post( $post->post_type ); ?>
 			</div>
 			<?php endwhile; ?>
 		<?php else : ?>

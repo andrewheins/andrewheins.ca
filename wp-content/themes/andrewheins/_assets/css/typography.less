@@ -25,7 +25,9 @@
 	font-family: "Courier", mono;
 }
 
-.small-text {}
+.small-text {
+	font-size: 1px;
+}
 
 .medium-text {}
 
@@ -40,6 +42,7 @@ body {
 	&:extend(.medium-text all);
 	color: @dark;
 	font-weight: 400;
+	font-size: 24px;
 }
 
 a {
@@ -100,7 +103,9 @@ em, .em {}
    ========================================================================== */
 
 .text-block {
-
+	
+	line-height: 1.4;
+	
 	ul {
 		
 		list-style-type: disc;
@@ -151,7 +156,7 @@ em, .em {}
 
 .h1 {}
 
-.h2, .text-block h2 {}
+.h2, .text-block h2 { font-weight: 600; }
 
 .h3, .text-block h3 {}
 

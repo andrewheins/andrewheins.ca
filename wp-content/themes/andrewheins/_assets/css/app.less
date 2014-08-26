@@ -33,7 +33,7 @@ body {
 .inner {
     &:extend(.clearfix all);
     margin: 0 auto;
-    max-width: @innerWidth + (@contentPadding * 1.5 * 2); // 1280px column, plus gutters to account for mod margins
+    max-width: @innerWidth; // 1280px column, plus gutters to account for mod margins
 }
 
 .col {
@@ -82,9 +82,10 @@ body {
 
     .inner {
 
-        max-width: @innerWidth;
-        padding: 0 @contentPadding; // These inners do not contain modules, so we need to tuck them in more than normal.
-
+        max-width: @innerWidth - (2 * @contentPadding);
+        padding: @contentPadding 0;
+        border-bottom: 1px solid;
+		
     }
 
 }

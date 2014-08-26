@@ -14,7 +14,13 @@
 		
 		$post = $data ?: $post;
 		
-		include( locate_template( '_embeds/' . $post_type . '.php' ) );
+		$slug = '_embeds/' . $post_type . '.php';
+		
+		if( is_single() ) {
+			$slug = '_embeds/' . $post_type . '-single.php';	
+		}
+		
+		include( locate_template( $slug ) );
 		
 	}
 	
