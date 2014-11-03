@@ -19,6 +19,9 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
 	<?php wp_head(); ?>
+		
+	<script src="//use.typekit.net/akz8gox.js"></script>
+	<script>try{Typekit.load();}catch(e){}</script>
 	
 	<!--[if IE 8]>
 		<link rel="stylesheet" type="text/css" href="/wp-content/themes/andrewheins/style-desktop.css" />
@@ -69,8 +72,12 @@
 </head>
 <body <?php body_class(); ?>>
 	
-	<header class="page-header">
+	<div class="row">
 		<div class="inner">
-			<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+			<div class="mod">
+				<header class="page-header">	
+					<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+				</header>
+			</div>
 		</div>
-	</header>
+	</div>

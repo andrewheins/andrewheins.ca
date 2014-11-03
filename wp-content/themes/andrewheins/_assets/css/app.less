@@ -15,8 +15,8 @@ html#html { // WPFix: Eliminate gap at the top for logged-in users
 
 body {
     background: white;
-    min-width: @minWidth;
-    max-width: @fullWidth;
+    min-width: @min-width;
+    max-width: @full-width;
     margin: 0 auto;
 }
 
@@ -33,7 +33,7 @@ body {
 .inner {
     &:extend(.clearfix all);
     margin: 0 auto;
-    max-width: @innerWidth; // 1280px column, plus gutters to account for mod margins
+    max-width: @inner-width; // 1280px column, plus gutters to account for mod margins
 }
 
 .col {
@@ -77,17 +77,9 @@ body {
    ========================================================================== */
 
 .page-header {
-
     &:extend(.unselectable);
-
-    .inner {
-
-        max-width: @innerWidth - (2 * @contentPadding);
-        padding: @contentPadding 0;
-        border-bottom: 1px solid;
-		
-    }
-
+    padding-bottom: @content-spacing;
+    border-bottom: 1px solid;
 }
 
 
