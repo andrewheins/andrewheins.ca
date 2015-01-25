@@ -88,10 +88,15 @@ body {
 .page-header {
     &:extend(.unselectable);
     &:extend(.clearfix all);
-    border-bottom: 1px solid;
+    border-bottom: @light 1px solid;
     
-    .mod {
-	    &:extend(.clearfix all);
+    .brand {
+	    &:extend(.mod all);
+	    text-align: center;
+    }
+    
+    .nav {
+	    &:extend(.mod all);
 	    text-align: center;
     }
     

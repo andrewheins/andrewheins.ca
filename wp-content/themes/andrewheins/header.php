@@ -69,14 +69,12 @@
 	
 	<div class="row">
 		<div class="inner">
-			<header class="page-header">	
-				<div class="brand">
-					<div class="mod">
+			<div class="mod">
+				<header class="page-header">	
+					<div class="brand">
 						<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
 					</div>
-				</div>
-				<div class="nav">
-					<div class="mod">
+					<div class="nav">
 						<?php
 						    wp_nav_menu(array(
 							    'container' => false,	// We don't want a container
@@ -86,7 +84,7 @@
 						    ));
 						?>
 					</div>
-				</div>
-			</header>
+				</header>
+			</div>
 		</div>
 	</div>
