@@ -128,21 +128,6 @@
    Scripts and Styles
    ========================================================================== */
    
-	/*
-	 * Enqueue Javascript from CDN
-	 */
-
-	function cl_enqueue_jquery() {
-		if (!is_admin()) {
-			wp_deregister_script('jquery');
-			wp_register_script('jquery', 'http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js', false, '1.9.1', true);
-			wp_enqueue_script('jquery');
-		}
-	}
-
-	add_action( 'wp_enqueue_scripts', 'cl_enqueue_jquery', 9 );
-
-
 
 	/*
 	 * Load All Scripts via enqueue

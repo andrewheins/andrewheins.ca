@@ -47,6 +47,8 @@ ul.list {
 
 }
 
+
+// Inline-block list items. Requires no whitespace between list items for spacing reasons.
 .list-horizontal {
 
     &:extend(.clearfix all);
@@ -56,7 +58,7 @@ ul.list {
 		float: left;
 
 		& + li {
-			margin-left: @content-spacing/3;
+			margin-left: @content-spacing/2;
 		}
 
 	}
