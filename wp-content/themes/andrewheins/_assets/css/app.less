@@ -1,4 +1,13 @@
 /* ==========================================================================
+   Debug
+   ========================================================================== */
+
+* {
+	outline: solid 1px green;
+}
+
+
+/* ==========================================================================
    Layout
    ========================================================================== */
  
@@ -80,6 +89,16 @@ body {
     &:extend(.unselectable);
     padding-bottom: @content-spacing;
     border-bottom: 1px solid;
+    
+    .mod {
+	    &:extend(.clearfix all);
+    }
+    
+    .site-menu {
+	    &:extend(.list-horizontal all);
+	    display: inline-block;
+	    float: right;
+    }
 }
 
 

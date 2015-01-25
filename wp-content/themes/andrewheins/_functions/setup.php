@@ -10,7 +10,12 @@
    Theme Support
    ========================================================================== */
    
-	add_theme_support( 'post-thumbnails' ); 
+	function register_theme_support() {
+		add_theme_support( 'post-thumbnails' ); 
+		add_theme_support( 'menus' ); 
+	}
+	
+	add_action( 'after_setup_theme', 'register_theme_support' );
 
 
 

@@ -47,7 +47,7 @@ ul.list {
 
 }
 
-.horizontal-list {
+.list-horizontal {
 
     &:extend(.clearfix all);
 
@@ -61,6 +61,16 @@ ul.list {
 
 	}
 	
+}
+
+ul.list-styled {
+	padding-left: @content-spacing * 2;
+	list-style-type: disc;	
+}
+
+ol.list-styled {
+	padding-left: @content-spacing * 2;
+	list-style: decimal;
 }
 
 
@@ -86,7 +96,12 @@ ul.list {
 	
 	& > .bd {
 		
-		// Anything we want contained 
+		/*
+		 *	We're horizontally compressing article block-level content
+		 *	in order to allow the images to float outward.
+		 *	I can see this coming back to bite me, but I'm 
+		 *	not sure there's a better way.
+		 */
 		& > p, 
 		& > blockquote, 
 		& > h1, 
@@ -105,8 +120,10 @@ ul.list {
 		& > article, 
 		& > section,
 		& > summary {
-				max-width: 760px;
-				margin: 0 auto;
+			max-width: 760px;
+			margin-left: auto;
+			margin-right: auto;
+			.border-box;
 		}
 		
 		.outset {
@@ -128,13 +145,30 @@ ul.list {
 			padding: @content-spacing;
 			color: #eee;
 		}
+		
+		code {
+			display: inline-block;
+			vertical-align: middle;
+			padding: 0 6px;
+			
+			&:extend( .border-box );
+			&:extend( .font-mono );
+			&:extend( .small-text );
+			
+			line-height: inherit;
+			
+			background: black;
+			color: #eee;
+		}
+		
 	}
 
     & > .ft {
 		margin-top: @content-spacing;
 		&:extend(.small-text all);
 		max-width: 760px;
-		margin: 0 auto;
+		margin-left: auto;
+		margin-right: auto;
 	}
 	
 }

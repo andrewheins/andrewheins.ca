@@ -70,9 +70,13 @@ a {
 	
 }
 
-strong, .strong {}
+strong, .strong {
+	font-weight: bold;
+}
 
-em, .em {}
+em, .em {
+	font-style: italic;
+}
 
 
 
@@ -121,26 +125,19 @@ em, .em {}
 	line-height: 1.5;
 	
 	ul {
-		
-		list-style-type: disc;
-		padding-left: @content-spacing * 2;
-
-		& + p {
-			margin-top: @content-spacing;
-		}
-
+		&:extend(ul.list-styled all);
+	}
+	
+	ol {
+		&:extend(ol.list-styled all);
 	}
 
-	p {
-
-		& + p {
+	// Maintain margins between different types of elements.
+	// Do we just do a * + * here?
+	p, ul, ol {
+		& + p, & + ul, & + ol {
 			margin-top: @content-spacing;
 		}
-
-		& + ul {
-			margin-top: @content-spacing;
-		}
-
 	}
 
 	// WordPress WYSIWYG Images

@@ -2,7 +2,7 @@
 	<div class="hd">
 		<h1 class="h1"><?php the_title(); ?></h1>
 	</div>
-	<div class="bd">
+	<div class="bd text-block">
 		<?php the_content(); ?>
 	</div>
 	<div class="ft">

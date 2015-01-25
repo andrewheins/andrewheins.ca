@@ -1,8 +1,3 @@
-<?php 
-	// Get global options for recurring use.
-	global $data;
-	$data = _s_get_theme_options();
-?>
 <!DOCTYPE html>
 <!--[if lte IE 7]><html id="html" class="ie7 deprecated"><![endif]-->
 <!--[if IE 8]><html id="html" class="ie8"><![endif]-->
@@ -74,9 +69,26 @@
 	
 	<div class="row">
 		<div class="inner">
-			<div class="mod">
 				<header class="page-header">	
-					<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+					<div class="row">
+						<div class="col" style-size="1of2">
+							<div class="mod">
+								<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+							</div>
+						</div>
+						<div class="col" style-size="1of2">
+							<div class="mod">
+								<?php
+								    wp_nav_menu(array(
+									    'container' => false,	// We don't want a container
+									    'menu_class' => 'site-menu',
+								        'menu'    => 'Head Links',
+								        'walker'  => new Walker_Simple_Menu(),
+								    ));
+								?>
+							</div>
+						</div>
+					</div>
 				</header>
 			</div>
 		</div>
