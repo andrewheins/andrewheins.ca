@@ -21,9 +21,7 @@
 	}
 
     & > .hd {
-
 		margin-bottom: @content-spacing;
-
 	}
 
     & > .ft {
@@ -83,17 +81,13 @@ ol.list-styled {
    ========================================================================== */
 
 .article {
-
-	& > .hd, & > .bd, & > .ft {
-		&:extend(.clearfix all);
-	}
+	
+	&:extend(.mod all);
 
     & > .hd {
-
 		max-width: 760px;
-		margin: 0 auto;
-		margin-bottom: @content-spacing;
-
+		margin-left: auto;
+		margin-right: auto;
 	}
 	
 	& > .bd {
@@ -166,7 +160,6 @@ ol.list-styled {
 	}
 
     & > .ft {
-		margin-top: @content-spacing;
 		&:extend(.small-text all);
 		max-width: 760px;
 		margin-left: auto;

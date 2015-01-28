@@ -39,10 +39,38 @@ body {
     &:extend(.clearfix all);
 }
 
+.row {
+}
+
 .inner {
+	
     &:extend(.clearfix all);
     margin: 0 auto;
     max-width: @inner-width; // 1280px column, plus gutters to account for mod margins
+    
+    &.row-bordered {
+	    
+		border-top: dashed 1px @light;
+		margin: 0 @content-spacing;
+		
+		// We want the outer edge of the border to align with the outer edge of the content
+		// so we need to make some adjustments for mod margins
+		
+		// For mods outside of rows, we can simply flatten their sides
+		& > .mod {
+			margin-left: 0;
+			margin-right: 0;
+		}
+		
+		// child rows imply a grid is coming, with each column using child mods for gutters
+		// We want to maintain that spacing, but ensure the outer edges align, so we outdent the row
+		& > .row {
+			margin-left: -@content-spacing;
+			margin-right: -@content-spacing;
+		}
+		
+	}
+    
 }
 
 .col {
@@ -88,11 +116,17 @@ body {
 .page-header {
     &:extend(.unselectable);
     &:extend(.clearfix all);
-    border-bottom: @light 1px solid;
+    border-bottom: @light 1px dashed;
+    margin-left: @content-spacing;
+    margin-right: @content-spacing;
     
     .brand {
+	    
 	    &:extend(.mod all);
 	    text-align: center;
+	    
+	    &:extend(.font-title all);
+	    
     }
     
     .nav {

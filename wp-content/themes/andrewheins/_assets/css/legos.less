@@ -15,27 +15,57 @@
 	&:extend(.clearfix all);
 
 	& > .media {
-	
-		float: left;
-		margin-right: @content-spacing;
-	
+		
 		& > img {
 			display: block;
 			border: 3px solid rgba(0, 0, 0, .1);
+			max-width: 100%;
+			height: auto;
+			margin-left: auto;
+			margin-right: auto;
 		}
-	
+		
+		margin-bottom: @content-spacing;
+		
 	}
 	
 	& > .bd {
 		overflow: hidden;
 	}
-	
-	&[style-alignment="right"] {
-		& > .media {
-			float: right;
-			margin-left: @content-spacing;
-			margin-right: 0;
-		}
-	}
 
 }
+
+
+
+/* ==========================================================================
+   Item List
+   Horizontal list of block elements that collapses and centers the elements
+   on the bottom row
+   ========================================================================== */
+   
+   .item-list {
+	   
+		display: block; 
+		width: 100%; 
+		text-align: center;
+		margin-bottom: -@content-spacing;
+	   
+		& > .item {
+		   width: 100%;
+		   display: inline-block; 
+		   vertical-align: middle; 
+		   min-width: 200px;
+		   margin-bottom: @content-spacing;
+		}
+	   
+		.item-label {
+			&:extend(.small-text all);
+		}
+	   
+		&[style-cols="2"] > .item { width: 50%; }
+		&[style-cols="3"] > .item { width: 33%; }
+		&[style-cols="4"] > .item { width: 25%; }
+		&[style-cols="5"] > .item { width: 20%; }
+		&[style-cols="6"] > .item { width: 16.66666667%; }
+	   
+   }

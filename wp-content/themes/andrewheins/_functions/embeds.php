@@ -34,3 +34,15 @@
 		
 		include( locate_template( $slug ) );
 	}
+	
+	function cl_embed_content_layer( $layer ) {
+		$slug = '_embeds/no-content.php';
+		
+		$layout = $layer['acf_fc_layout'];
+		
+		if( !empty( $layout ) ) {
+			$slug = '_embeds/layer-' . $layout . '.php';
+		}
+		
+		include( locate_template( $slug ) );
+	}

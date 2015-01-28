@@ -69,22 +69,23 @@
 	
 	<div class="row">
 		<div class="inner">
-			<div class="mod">
-				<header class="page-header">	
-					<div class="brand">
-						<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
-					</div>
-					<div class="nav">
-						<?php
-						    wp_nav_menu(array(
-							    'container' => false,	// We don't want a container
-							    'menu_class' => 'site-menu',
-						        'menu'    => 'Head Links',
-						        'walker'  => new Walker_Simple_Menu(),
-						    ));
-						?>
-					</div>
-				</header>
-			</div>
+			<header class="page-header">	
+				
+				<div class="brand">
+					<a href="<?= site_url(); ?>"><?php bloginfo( 'name' ); ?></a>
+				</div>
+				
+				<div class="nav">
+					<?php
+					    wp_nav_menu(array(
+						    'container' => false,	// We don't want a container
+						    'menu_class' => 'site-menu',
+					        'menu'    => 'Head Links',
+					        'walker'  => new Walker_Simple_Menu(),
+					    ));
+					?>
+				</div>
+				
+			</header>
 		</div>
 	</div>

@@ -24,6 +24,24 @@
 		}
 		
 	}
+	
+	.media-block {
+
+		& > .media {		
+			float: left;
+			margin-right: 2*@content-spacing;
+			width: 33%;
+			margin-bottom: 0;
+		}
+		
+		&[style-alignment="right"] {
+			& > .media {
+				float: right;
+				margin-left: 2*@content-spacing;
+				margin-right: 0;
+			}
+		}
+	}
 
 }
 

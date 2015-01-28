@@ -117,6 +117,9 @@ $(function() {
 		
 	});
 	*/
+	
+	// FitVids
+	$(".article").fitVids();
 
 
 

@@ -4,14 +4,7 @@
 	<div class="inner">
 		<?php if( have_posts() ) : ?>
 			<?php while( have_posts() ) : the_post(); ?>
-			<div class="mod text-block">
-				<div class="hd">
-					<?php the_title(); ?>
-				</div>
-				<div class="bd">
-					<?php the_content(); ?>
-				</div>
-			</div>
+				<?php cl_embed_post( $post->post_type ); ?>
 			<?php endwhile; ?>
 		<?php else : ?>
 			<?php cl_embed_no_content(); ?>
