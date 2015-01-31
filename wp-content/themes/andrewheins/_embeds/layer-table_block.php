@@ -11,7 +11,7 @@
 			<div class="bd">
 				<ul class="item-list" style-cols="<?php echo( $layer['columns'] ); ?>">
 					<?php foreach( $layer['items'] as $item ) : ?><li class="item">
-						<?php echo( wp_get_attachment_image( $item['image']['id'], 'thumbnail' ) ); ?>
+						<?php echo( wp_get_attachment_image( $item['image']['id'], 'medium' ) ); ?>
 						<div class="item-label"><?php echo( $item['label'] ); ?></div>
 					</li><?php endforeach; ?>
 				</ul>

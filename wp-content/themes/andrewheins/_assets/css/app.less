@@ -15,6 +15,8 @@ html {}
 
 html#html { // WPFix: Eliminate gap at the top for logged-in users
     margin-top: 0 !important;
+    height: 100%;
+	overflow: hidden;
 }
 
 .ie8 body, .ie9 body {
@@ -27,9 +29,19 @@ body {
     min-width: @min-width;
     max-width: @full-width;
     margin: 0 auto;
+	height: 100%;
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
 }
 
-
+.context-dark {
+	background: @dark;
+	color: #eee;
+	
+	a {
+		color: inherit;
+	}
+}
 
 /* ==========================================================================
    Grid
@@ -37,9 +49,6 @@ body {
 
 .row, .col {
     &:extend(.clearfix all);
-}
-
-.row {
 }
 
 .inner {
@@ -110,6 +119,22 @@ body {
 
 
 /* ==========================================================================
+   Sticky Footer
+   ========================================================================== */
+
+.site {
+	display: table;
+	height: 100%;
+	table-layout: fixed;
+	width: 100%;
+	
+	& > .row:last-of-type {
+		padding-bottom: 2*@content-spacing;
+	}
+}
+
+
+/* ==========================================================================
    Header
    ========================================================================== */
 
@@ -119,6 +144,7 @@ body {
     border-bottom: @light 1px dashed;
     margin-left: @content-spacing;
     margin-right: @content-spacing;
+    margin-bottom: 2*@content-spacing;
     
     .brand {
 	    
@@ -137,6 +163,10 @@ body {
     .site-menu {
 	    &:extend(.list-horizontal all);
 	    display: inline-block;
+	    
+	    a {
+	    	&:extend( .nav-link all );
+	    }
     }
 }
 
@@ -146,4 +176,36 @@ body {
    Footer
    ========================================================================== */
 
-footer#page-footer {}
+.page-footer {
+	
+	&:extend(.context-dark all);
+	&:extend(.small-text);
+	margin-top: 2*@content-spacing;
+	
+	/* Sticky Footer Logic */
+	display: table-row;
+	height: 1px;
+	
+	.mod {
+		text-align: center;
+	}
+
+}
+
+
+/* ==========================================================================
+   Layers
+   ========================================================================== */
+   
+.row {
+   
+   &[layer-style="text_block"] {
+	   .mod {
+		   max-width: 800px;
+		   float: right;
+		   padding-left: @content-spacing;
+		   border-left: solid 12px @light;
+	   }
+   }
+   
+}

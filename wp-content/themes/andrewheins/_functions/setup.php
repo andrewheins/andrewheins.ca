@@ -125,6 +125,32 @@
 
 
 /* ==========================================================================
+   WordPress Settings
+   ========================================================================== */
+   
+	if( function_exists('acf_add_options_page') ) {
+		
+		acf_add_options_page(array(
+			'page_title' 	=> 'General Settings',
+			'menu_title'	=> 'General Settings',
+			'menu_slug' 	=> 'general-settings',
+			'capability'	=> 'edit_posts',
+			'redirect'		=> false
+		));
+	
+	}
+
+/* ==========================================================================
+   Disable Pingbacks
+   ========================================================================== */
+	
+	add_filter( 'xmlrpc_methods', 'remove_xmlrpc_pingback_ping' );
+	function remove_xmlrpc_pingback_ping( $methods ) {
+	   unset( $methods['pingback.ping'] );
+	   return $methods;
+	} ;
+
+/* ==========================================================================
    Scripts and Styles
    ========================================================================== */
    

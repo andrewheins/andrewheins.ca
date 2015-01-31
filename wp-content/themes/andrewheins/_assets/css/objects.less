@@ -85,7 +85,7 @@ ol.list-styled {
 	&:extend(.mod all);
 
     & > .hd {
-		max-width: 760px;
+		max-width: 768px;
 		margin-left: auto;
 		margin-right: auto;
 	}
@@ -116,7 +116,7 @@ ol.list-styled {
 		& > article, 
 		& > section,
 		& > summary {
-			max-width: 760px;
+			max-width: 768px;
 			margin-left: auto;
 			margin-right: auto;
 			.border-box;
@@ -161,9 +161,17 @@ ol.list-styled {
 
     & > .ft {
 		&:extend(.small-text all);
-		max-width: 760px;
+		max-width: 768px;
 		margin-left: auto;
 		margin-right: auto;
+	}
+	
+}
+
+.pagination {
+	
+	a {
+		&:extend( .nav-link all );
 	}
 	
 }

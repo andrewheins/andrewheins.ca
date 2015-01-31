@@ -41,6 +41,7 @@
 }
 
 .small-text {
+	&:extend( .font-body );
 	font-size: 14px;
 }
 
@@ -123,6 +124,8 @@ em, .em {
 .text-block {
 	
 	line-height: 1.5;
+	&:extend(.break-long-words all);
+    
 	
 	ul {
 		&:extend(ul.list-styled all);
@@ -224,4 +227,14 @@ em, .em {
 	&:extend( .font-title all );
 	text-transform: uppercase;
 	font-size: 18px;
+}
+
+
+.nav-link {
+	font-size: @font-size-medium;
+	text-decoration: none;
+	
+	&:hover {
+    	text-decoration: underline;
+	}
 }
