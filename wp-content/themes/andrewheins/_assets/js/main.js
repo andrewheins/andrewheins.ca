@@ -119,7 +119,7 @@ $(function() {
 	*/
 	
 	// FitVids
-	$(".article").fitVids();
+	$(".article").fitVids({ customSelector: "iframe[src^='http://jsfiddle.net']"});
 
 
 
