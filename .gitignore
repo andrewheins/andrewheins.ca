@@ -28,3 +28,9 @@ sitemap.xml.gz
 .sass-cache
 
 node_modules/
+clients/
+content/
+i/
+images/
+js/
+wiki/
