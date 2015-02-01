@@ -57,7 +57,7 @@ body {
 	&:extend(.font-body);
 	&:extend(.medium-text all);
 	color: @dark;
-	font-size: 24px;
+	font-size: @font-size-medium;
 }
 
 a {
@@ -196,14 +196,14 @@ em, .em {
 
 .h1 {
 	&:extend( .font-title all );
-	font-size: @font-size-largest;
-	line-height: @line-height-largest;
-	
+	font-size: @font-size-large;
+	line-height: @line-height-large;
+	text-align: center;
 }
 
 .h2, .text-block h2 { 
 	&:extend( .font-title all );
-	font-size: @font-size-large;
+	font-size: @font-size-body;
 	line-height: @line-height-large;
 }
 

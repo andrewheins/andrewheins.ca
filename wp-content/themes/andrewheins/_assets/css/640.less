@@ -3,6 +3,10 @@
 ******************************************************************/
 .from640 {
 
+	body {
+		font-size: @font-size-body;
+	}
+	
 	.page-header {
 		
 		.mod {
@@ -77,6 +81,33 @@
 			
 		}
 		
+	}
+	
+	.h1 {
+		font-size: @font-size-largest;
+		line-height: @line-height-largest;
+		
+	}
+	
+	.h2, .text-block h2 { 
+		font-size: @font-size-large;
+		line-height: @line-height-large;
+	}
+	
+	.h3, .text-block h3 {
+		text-transform: uppercase;
+	}
+	
+	.h4, .text-block h4 {
+		font-size: 18px;
+	}
+	
+	.single {
+		.article {
+			.hd {
+				margin-bottom: 4*@content-spacing;
+			}
+		}
 	}
 
 }
