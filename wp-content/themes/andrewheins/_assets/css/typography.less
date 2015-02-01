@@ -124,8 +124,7 @@ em, .em {
 .text-block {
 	
 	line-height: 1.5;
-	&:extend(.break-long-words all);
-    
+    &:extend( .break-long-words all );
 	
 	ul {
 		&:extend(ul.list-styled all);
@@ -180,6 +179,10 @@ em, .em {
 	blockquote {
 		margin: @content-spacing 0;
 		padding: @content-spacing;
+	}
+	
+	iframe {
+		max-width: 100%;
 	}
 
 }
