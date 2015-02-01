@@ -48,6 +48,36 @@
 			}
 		}
 	}
+	
+	.text-block {
+		
+		.aligncenter, .alignleft, .alignright {
+			margin-bottom: 0;
+			width: auto;	
+		}
+		
+		.alignleft {
+			float: left;
+			margin-right: @content-spacing;
+		}
+		
+		.alignright {
+			float: right;
+			margin-left: @content-spacing;
+		}
+	
+		.aligncenter {
+			
+			margin: @content-spacing auto;
+			max-width: 100%;
+			
+			img {
+				max-width: 100%;
+			}
+			
+		}
+		
+	}
 
 }
 
