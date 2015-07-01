@@ -59,7 +59,7 @@ body {
     
     &.row-bordered {
 	    
-		border-top: dashed 1px @light;
+		border-top: solid 1px @light;
 		margin: 0 @content-spacing;
 		
 		// We want the outer edge of the border to align with the outer edge of the content
@@ -141,10 +141,10 @@ body {
 .page-header {
     &:extend(.unselectable);
     &:extend(.clearfix all);
-    border-bottom: @light 1px dashed;
+    border-bottom: @light 1px solid;
     margin-left: @content-spacing;
     margin-right: @content-spacing;
-    margin-bottom: 2*@content-spacing;
+    margin-bottom: @content-spacing;
     
     .brand {
 	    

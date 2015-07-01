@@ -161,15 +161,6 @@
 	 
 	function cl_scripts(){
 	
-		// In Production, add analytics to the header
-		if (ENV === "PRODUCTION") {
-			wp_register_script(
-				"analytics",
-				ASSET_PATH . '/js/output/analytics.min.js'
-			);
-			wp_enqueue_script("analytics");
-		}
-
 		wp_register_script(
 			"general",
 			ASSET_PATH . '/js/output/global.min.js', // Pre-minified by Grunt
