@@ -9,7 +9,7 @@ return array(
 	'cluster.messagebus.sns.api_secret' => '',
 	'cluster.messagebus.sns.topic_arn' => '',
 	'dbcache.debug' => false,
-	'dbcache.enabled' => false,
+	'dbcache.enabled' => true,
 	'dbcache.engine' => 'file',
 	'dbcache.file.gc' => 3600,
 	'dbcache.file.locking' => false,
@@ -83,7 +83,7 @@ return array(
 	'fragmentcache.lifetime' => 180,
 	'fragmentcache.groups' => array(
 	),
-	'pgcache.enabled' => false,
+	'pgcache.enabled' => true,
 	'pgcache.comment_cookie_ttl' => 1800,
 	'pgcache.debug' => false,
 	'pgcache.engine' => 'file_generic',
@@ -163,7 +163,7 @@ return array(
 	'pgcache.prime.limit' => 10,
 	'pgcache.prime.sitemap' => '',
 	'pgcache.prime.post.enabled' => false,
-	'minify.enabled' => false,
+	'minify.enabled' => true,
 	'minify.auto' => true,
 	'minify.debug' => false,
 	'minify.engine' => 'file',
@@ -181,7 +181,7 @@ return array(
 	),
 	'minify.lifetime' => 86400,
 	'minify.upload' => true,
-	'minify.html.enable' => false,
+	'minify.html.enable' => true,
 	'minify.html.engine' => 'html',
 	'minify.html.reject.feed' => false,
 	'minify.html.inline.css' => false,
@@ -244,12 +244,16 @@ return array(
 	'minify.htmltidy.options.wrap' => 0,
 	'minify.reject.logged' => false,
 	'minify.reject.ua' => array(
+		0 => '',
 	),
 	'minify.reject.uri' => array(
+		0 => '',
 	),
 	'minify.reject.files.js' => array(
+		0 => '',
 	),
 	'minify.reject.files.css' => array(
+		0 => '',
 	),
 	'minify.cache.files' => array(
 		0 => 'https://ajax.googleapis.com',
@@ -630,8 +634,8 @@ return array(
 	'notes.wp_upgraded' => false,
 	'notes.plugins_updated' => false,
 	'notes.cdn_upload' => false,
-	'notes.cdn_reupload' => true,
-	'notes.need_empty_pgcache' => false,
+	'notes.cdn_reupload' => false,
+	'notes.need_empty_pgcache' => true,
 	'notes.need_empty_minify' => false,
 	'notes.need_empty_objectcache' => false,
 	'notes.root_rules' => true,
