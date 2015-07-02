@@ -37,7 +37,6 @@
 		if (document.getElementsByTagName('html')[0].className.indexOf('lt-ie7') > 0) { window.location.href = '/browser-unsupported/'; }
     </script>
     
-   	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="<?php echo ASSET_PATH; ?>/js/output/preload.min.js"></script>
     
     <?php if (ENV === "PRODUCTION") : ?>
