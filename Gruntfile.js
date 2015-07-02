@@ -26,12 +26,12 @@ module.exports = function(grunt) {
 			    files: {
 			    	// JS that fires just before the closing </body> tag goes in global
 					"wp-content/themes/andrewheins/_assets/js/output/global.min.js": [
-						//assetPath + "/js/lib/underscore.js",
-						//assetPath + "/js/lib/backbone.js",
+						assetPath + "/js/lib/underscore.js",
+						assetPath + "/js/lib/backbone.js",
 						//assetPath + "/js/lib/fast-active.js",
 						//assetPath + "/js/lib/fastclick.js",
 						//assetPath + "/js/lib/jquery.transit.js",
-						//assetPath + "/js/lib/fitvids.js",
+						assetPath + "/js/lib/fitvids.js",
 						assetPath + "/js/main.js",
 						
 					],

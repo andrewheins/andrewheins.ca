@@ -11,10 +11,6 @@
 
 </div>
 
-
-	<script src="<?php cl_asset_path(); ?>/js/lib/underscore.js"></script>
-	<script src="<?php cl_asset_path(); ?>/js/lib/backbone.js"></script>
-	<script src="<?php cl_asset_path(); ?>/js/lib/fitvids.js"></script>
 	<?php wp_footer(); ?>
     
 </body>
