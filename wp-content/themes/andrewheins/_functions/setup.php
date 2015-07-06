@@ -54,17 +54,6 @@
 	add_action('init', 'remove_header_info');
 	
 	
-	/*
-	 * Disable Pingbacks
-	 */
-	
-	add_filter( 'xmlrpc_methods', 'remove_xmlrpc_pingback_ping' );
-	function remove_xmlrpc_pingback_ping( $methods ) {
-		unset( $methods['pingback.ping'] );
-		return $methods;
-	} ;
-	
-	
 	
 	/*
 	 * Remove Admin Bar for all users outside admin section
