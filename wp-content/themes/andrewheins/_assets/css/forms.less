@@ -113,8 +113,28 @@ form {
 		top: -2px;
 	}
 	
-	&.button-inline {
-		display: inline;
-		&:extend( .button.button-small all );
+	&.button-inline {		
+		@media only screen and (min-width: 800px) {
+			display: inline;
+			&:extend( .button.button-small all );
+		}
+	}
+	
+	&.button-more {
+		
+		position: relative;
+		
+		&:after {
+			
+			content:'›';
+			padding-left: 10px;
+			
+			@media only screen and (max-width: 799px) {
+				position: absolute;
+				right: @content-spacing;
+			}
+			
+		}
+		
 	}
 }
