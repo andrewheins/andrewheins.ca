@@ -107,7 +107,8 @@
 	 */
 	
 	function new_excerpt_more( $more ) {
-		return '...';
+		global $post;
+		return '... <a href="' . get_permalink( $post->ID ) . '" class="button button-inline">Read More</a>';
 	}
 	
 	add_filter('excerpt_more', 'new_excerpt_more');

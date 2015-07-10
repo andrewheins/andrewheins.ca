@@ -100,8 +100,21 @@ form {
 	background: #fff;
 	padding: 11px 12px 9px;
 	margin: 0;	
+	text-decoration: none;
 	
 	&:hover {
-		&:extend( .context-dark );
+		&:extend( .context-dark all );
+	}
+	
+	&.button-small {
+		padding: 3px 4px 2px;
+		font-size: 12px;
+		position: relative;
+		top: -2px;
+	}
+	
+	&.button-inline {
+		display: inline;
+		&:extend( .button.button-small all );
 	}
 }

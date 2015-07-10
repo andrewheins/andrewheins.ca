@@ -129,6 +129,10 @@ em, .em {
 	}
 }
 
+[style-context="secondary"] {
+	.small-text;
+}
+
 
 /* ==========================================================================
    Text Blocks
@@ -214,7 +218,7 @@ em, .em {
 	text-align: center;
 }
 
-.h2, .text-block h2 { 
+.h2, .text-block h2, [style-context="secondary"] .h1 { 
 	&:extend( .font-title all );
 	font-size: @font-size-body;
 	line-height: @line-height-large;
@@ -225,7 +229,7 @@ em, .em {
 	text-transform: uppercase;
 }
 
-.h4, .text-block h4 {
+.h4, .text-block h4, [style-context="secondary"] .h2 {
 	&:extend( .font-title all );
 	text-transform: uppercase;
 	font-size: 18px;
