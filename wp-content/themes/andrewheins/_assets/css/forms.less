@@ -113,10 +113,13 @@ form {
 		top: -2px;
 	}
 	
-	&.button-inline {		
+	&.button-inline {	
+		
+		margin-top: @content-spacing/2;
+			
 		@media only screen and (min-width: 800px) {
 			display: inline;
-			&:extend( .button.button-small all );
+			.button.button-small;
 		}
 	}
 	
