@@ -1,9 +1,8 @@
+# Garbage
 .DS_Store
 .AppleDouble
 .LSOverride
 Icon
-
-
 # Thumbnails
 ._*
 
@@ -11,27 +10,42 @@ Icon
 .Spotlight-V100
 .Trashes
 
+# Server specific stuff
 /.htaccess
 /wp-config.php
 /wp-content/uploads/
-/wp-content/blogs.dir/
 /wp-content/upgrade/
-/wp-content/backup-db/
-/wp-content/advanced-cache.php
-/wp-content/wp-cache-config.php
-/sitemap.xml
-*.log
-/wp-content/cache/
-/wp-content/backups/
-/sitemap.xml.gz
 
+# Multisite related stuff
+/wp-content/blogs.dir/
+
+# Backup related stuff
+/wp-content/backup-db/
+/wp-content/backups/
+
+# Cache related stuff
+/wp-content/cache/
+/wp-content/advanced-cache.php
+/wp-content/db.php
+/wp-content/object-cache.php
+/wp-content/wp-cache-config.php
+/wp-content/w3tc-config/
 .sass-cache
 
+# Logs
+*.log
+
+# Sitemap
+/sitemap.xml
+/sitemap.xml.gz
+
+# Installation related stuff
 /node_modules/
+
+# Legacy files
 /clients/
 /content/
 /i/
 /images/
 /js/
 /wiki/
-/wp-content/w3tc-config/
