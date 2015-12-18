@@ -23,7 +23,7 @@ set :log_level, :debug
 # set :pty, true
 
 # Default value for :linked_files is []
-set :linked_files, fetch(:linked_files, []).push('wp-content/advanced-cache.php')
+set :linked_files, fetch(:linked_files, []).push('wp-config.php', 'wp-content/advanced-cache.php')
 
 # Default value for linked_dirs is []
 set :linked_dirs, fetch(:linked_dirs, []).push('wp-content/uploads')
