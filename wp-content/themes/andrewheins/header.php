@@ -12,7 +12,7 @@
     <link rel="shortcut icon" href="<?php echo ASSET_PATH; ?>/img/favicon.ico">
     
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+	<meta name="google-site-verification" content="LFp4TM5sg4bFxCVVBjXKYqe63qW5I8mD0OMvOzNxcBo" />    
 	<?php wp_head(); ?>
 		
 	<script>

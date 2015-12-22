@@ -23,10 +23,10 @@ set :log_level, :debug
 # set :pty, true
 
 # Default value for :linked_files is []
-set :linked_files, fetch(:linked_files, []).push('wp-config.php', 'wp-content/advanced-cache.php')
+set :linked_files, fetch(:linked_files, []).push('.htaccess', 'wp-config.php', 'wp-content/advanced-cache.php', 'wp-content/object-cache.php', 'wp-content/db.php')
 
 # Default value for linked_dirs is []
-set :linked_dirs, fetch(:linked_dirs, []).push('wp-content/uploads')
+set :linked_dirs, fetch(:linked_dirs, []).push('wp-content/uploads', 'wp-content/cache', 'wp-content/w3tc-config')
 
 # Default value for default_env is {}
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
@@ -34,15 +34,17 @@ set :linked_dirs, fetch(:linked_dirs, []).push('wp-content/uploads')
 # Default value for keep_releases is 5
 # set :keep_releases, 5
 
-namespace :deploy do
+# namespace :deploy do
 
-  after :restart, :clear_cache do
-    on roles(:web), in: :groups, limit: 3, wait: 10 do
+  desc "Setup Caching Permissions"
+  task :deploy do
+    on roles(:all), in: :sequence, wait: 5 do
       # Here we can do anything such as:
-      # within release_path do
-      #   execute :rake, 'cache:clear'
-      # end
+      within release_path do
+	execute :chmod, "777 wp-content/w3tc-config"
+	execute :chmod, "755 wp-content"
+      end
     end
   end
 
-end
+# end
