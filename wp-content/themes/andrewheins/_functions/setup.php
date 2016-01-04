@@ -27,7 +27,7 @@
 	 * Asset Path
 	 */
 
-	define("ASSET_PATH", "/wp-content/themes/andrewheins/_assets"); // Global constant definition
+	define("ASSET_PATH", "https://andrewheins.ca/wp-content/themes/andrewheins/_assets"); // Global constant definition
 	function cl_asset_path() { echo ASSET_PATH; } // Wrapper for using this constant in templates with normal WP style
 	
 	
