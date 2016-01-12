@@ -6,11 +6,13 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		less: {
 			development: {
+/*
 				options: {
 					compress: true,
 					yuicompress: true,
 					optimization: 10,
 				},
+*/
 				files: {
 					// target.css file: source.less file
 					"wp-content/themes/andrewheins/style.css": assetPath + "/css/main.less"
