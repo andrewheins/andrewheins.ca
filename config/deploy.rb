@@ -41,8 +41,8 @@ set :linked_dirs, fetch(:linked_dirs, []).push('wp-content/uploads', 'wp-content
     on roles(:all), in: :sequence, wait: 5 do
       # Here we can do anything such as:
       within shared_path do
-	execute :chmod, "777 wp-content/w3tc-config"
-	execute :chmod, "755 wp-content"
+      	execute :chmod, "777 wp-content/w3tc-config"
+      	execute :chmod, "755 wp-content"
       end
     end
   end
