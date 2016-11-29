@@ -1,5 +1,5 @@
 
-<div id="poststuff" class="sucuriscan-update-security-keys">
+<div class="sucuriscan-panelstuff sucuriscan-update-security-keys">
     <div class="postbox">
         <div class="inside">
             <p>
@@ -26,7 +26,7 @@
                 </thead>
 
                 <tbody>
-                    %%SUCURI.SecurityKeys.List%%
+                    %%%SUCURI.SecurityKeys.List%%%
                 </tbody>
             </table>
 

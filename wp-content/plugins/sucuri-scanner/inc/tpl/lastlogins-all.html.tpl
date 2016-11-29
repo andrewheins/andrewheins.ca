@@ -23,7 +23,7 @@
     </thead>
 
     <tbody>
-        %%SUCURI.UserList%%
+        %%%SUCURI.UserList%%%
 
         <tr class="sucuriscan-%%SUCURI.UserList.NoItemsVisibility%%">
             <td colspan="6">
@@ -34,7 +34,7 @@
         <tr class="sucuriscan-%%SUCURI.UserList.PaginationVisibility%%">
             <td colspan="6">
                 <ul class="sucuriscan-pagination">
-                    %%SUCURI.UserList.Pagination%%
+                    %%%SUCURI.UserList.Pagination%%%
                 </ul>
             </td>
         </tr>

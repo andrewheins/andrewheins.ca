@@ -1,39 +1,37 @@
 
-<div id="poststuff">
+<div class="sucuriscan-tabs">
+    <script type="text/javascript">
+    jQuery(document).ready(function ($) {
+        var total = $('.sucuriscan-hardening-boxes .postbox').length;
+        var applied = $('.sucuriscan-hardening-boxes .postbox .sucuriscan-hstatus-1').length;
 
-    <form method="post">
+        $('#sucuriscan-hardening-stats').html(
+            '({{APPLIED}}/{{TOTAL}})'
+            .replace('{{TOTAL}}', total)
+            .replace('{{APPLIED}}', applied)
+        );
+    });
+    </script>
 
-        <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-        <input type="hidden" name="sucuriscan_run_hardening" value="1" />
+    <ul>
+        <li>
+            <a href="#hardening" data-tabname="hardening">
+                <span>Hardening Options</span>
+                <em id="sucuriscan-hardening-stats">(Loading...)</em>
+            </a>
+        </li>
+        <li>
+            <a href="#whitelist" data-tabname="whitelist">Whitelist Blocked PHP Files</a>
+        </li>
+    </ul>
 
-        %%SUCURI.Hardening.Version%%
+    <div class="sucuriscan-tab-containers">
+        <div id="sucuriscan-hardening">
+            %%%SUCURI.Hardening.Panel%%%
+        </div>
 
-        %%SUCURI.Hardening.CloudProxy%%
-
-        %%SUCURI.Hardening.RemoveGenerator%%
-
-        %%SUCURI.Hardening.NginxPhpFpm%%
-
-        %%SUCURI.Hardening.Upload%%
-
-        %%SUCURI.Hardening.WpContent%%
-
-        %%SUCURI.Hardening.WpIncludes%%
-
-        %%SUCURI.Hardening.PhpVersion%%
-
-        %%SUCURI.Hardening.SecretKeys%%
-
-        %%SUCURI.Hardening.Readme%%
-
-        %%SUCURI.Hardening.AdminUser%%
-
-        %%SUCURI.Hardening.FileEditor%%
-
-        %%SUCURI.Hardening.DBTables%%
-
-        %%SUCURI.Hardening.ErrorLog%%
-
-    </form>
-
+        <div id="sucuriscan-whitelist">
+            %%%SUCURI.Hardening.Whitelist%%%
+        </div>
+    </div>
 </div>

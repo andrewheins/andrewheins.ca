@@ -1,170 +1,183 @@
 <?php
 
-class ITSEC_Strong_Passwords {
+final class ITSEC_Strong_Passwords {
+	public function __construct() {
+		add_action( 'user_profile_update_errors', array( $this, 'filter_user_profile_update_errors' ), 0, 3 );
+		add_action( 'validate_password_reset', array( $this, 'validate_password_reset' ), 10, 2 );
 
-	private
-		$settings,
-		$module_path;
-
-	function run() {
-
-		$this->settings    = get_site_option( 'itsec_strong_passwords' );
-		$this->module_path = ITSEC_Lib::get_module_path( __FILE__ );
-
-		//require strong passwords if turned on
-		if ( isset( $this->settings['enabled'] ) && $this->settings['enabled'] === true ) {
-
-			add_action( 'user_profile_update_errors', array( $this, 'enforce_strong_password' ), 0, 3 );
-			add_action( 'validate_password_reset', array( $this, 'enforce_strong_password' ), 10, 2 );
-
-			if ( isset( $_GET['action'] ) && ( $_GET['action'] == 'rp' || $_GET['action'] == 'resetpass' ) && isset( $_GET['login'] ) ) {
-				add_action( 'login_head', array( $this, 'enforce_strong_password' ) );
-			}
-
-			add_action( 'admin_enqueue_scripts', array( $this, 'login_script_js' ) );
-			add_action( 'login_enqueue_scripts', array( $this, 'login_script_js' ) );
-
-		}
-
+		add_action( 'admin_enqueue_scripts', array( $this, 'add_scripts' ) );
+		add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ) );
 	}
 
 	/**
-	 * Require strong passwords
+	 * Enqueue script to add measured password strength to the form submission data.
 	 *
-	 * Requires new passwords set are strong passwords
+	 * @return void
+	 */
+	public function add_scripts() {
+		$module_path = ITSEC_Lib::get_module_path( __FILE__ );
+
+		wp_enqueue_script( 'itsec_strong_passwords', $module_path . 'js/script.js', array( 'jquery' ), ITSEC_Core::get_plugin_build() );
+	}
+
+	/**
+	 * Handle submission of a form to create or edit a user.
 	 *
-	 * @param object $errors WordPress errors
+	 * @param WP_Error $errors WP_Error object.
+	 * @param bool     $update Whether this is a user update.
+	 * @param stdClass $user   User object.
 	 *
-	 * @return object WordPress error object
-	 *
-	 **/
-	function enforce_strong_password( $errors ) {
-
-		//determine the minimum role for enforcement
-		$min_role = isset( $this->settings['roll'] ) ? $this->settings['roll'] : 'administrator';
-
-		//all the standard roles and level equivalents
-		$available_roles = array(
-			'administrator' => '8',
-			'editor'        => '5',
-			'author'        => '2',
-			'contributor'   => '1',
-			'subscriber'    => '0'
-		);
-
-		//roles and subroles
-		$rollists = array(
-			'administrator' => array( 'subscriber', 'author', 'contributor', 'editor' ),
-			'editor'        => array( 'subscriber', 'author', 'contributor' ),
-			'author'        => array( 'subscriber', 'contributor' ),
-			'contributor'   => array( 'subscriber' ),
-			'subscriber'    => array(),
-		);
-
-		$password_meets_requirements = false;
-		$args                        = func_get_args();
-		$user_id                     = isset( $args[2]->user_login ) ? $args[2]->user_login : false;
-
-		if ( $user_id === false ) { //try to get a working user ID
-
-			if ( isset( $args[1] ) && isset( $args[1]->ID ) ) {
-
-				if ( isset( $args[1]->user_login ) ) {
-
-					$user_id = $args[1]->user_login;
-
-				} else {
-
-					$user_id = $args[1]->get( 'user_login' );
-				}
-
-			}
-
+	 * @return WP_Error
+	 */
+	public function filter_user_profile_update_errors( $errors, $update, $user ) {
+		if ( $errors->get_error_data( 'pass' ) ) {
+			// An error regarding the password was already found.
+			return $errors;
 		}
 
-		if ( $user_id ) { //if updating an existing user
+		$password_strength = false;
 
-			if ( $user_info = get_user_by( 'login', $user_id ) ) {
+		if ( ! isset( $user->user_pass ) && $update ) {
+			// The password was not changed, but an update is occurring. Test to see if we need to prompt for a password change.
+			// This also handles the case where a user's role is being changed to one that requires strong password enforcement.
 
-				foreach ( $user_info->roles as $capability ) {
+			$password_strength = get_user_meta( $user->ID, 'itsec-password-strength', true );
 
-					if ( isset( $available_roles[ $capability ] ) && $available_roles[ $capability ] >= $available_roles[ $min_role ] ) {
-						$password_meets_requirements = true;
+			if ( false === $password_strength || '' === $password_strength || ! in_array( $password_strength, range( 0, 4 ) )  ) {
+				// Not enough data to determine whether a change of password is required.
+				return $errors;
+			}
+		}
+
+		$wp_roles = wp_roles();
+		$user_caps = array();
+
+		if ( $update ) {
+			// We're updating the user, make sure that we keep a list of additional caps that may have been added to the user.
+			// Since the $user_obj->caps array contains both roles and caps added to the user, we have to check whether the cap is a role or cap.
+
+			$user_obj = get_user_by( 'id', $user->ID );
+
+			if ( isset( $user_obj->caps ) && is_array( $user_obj->caps ) ) {
+				foreach ( array_keys( $user_obj->caps ) as $cap ) {
+					if ( ! $wp_roles->is_role( $cap ) ) {
+						$user_caps[] = $cap;
 					}
-
 				}
-
-			} else { //a new user
-
-				if ( ! empty( $_POST['role'] ) && ! in_array( $_POST["role"], $rollists[ $min_role ] ) ) {
-					$password_meets_requirements = true;
-				}
-
 			}
-
 		}
 
-		if ( $password_meets_requirements === true ) {
-
-			add_action( 'shutdown', array( $this, 'shut_down_js' ) );
-
+		if ( isset( $user->role ) ) {
+			// A user other than the current user is being created or updated, $user->role contains the role selected on the form.
+			$role = $user->role;
+		} else if ( isset( $user_obj ) ) {
+			// The current user is being updated, this makes the logic simple as we can simply use $user_obj->allcaps to get a complete list of the user's caps.
+			$caps = array_keys( $user_obj->allcaps );
+		} else {
+			// Something strange is going on, as a last-ditch effort, use the default role as done by wp_insert_user() when the role isn't provided.
+			$role = get_option( 'default_role' );
 		}
 
-		if ( ! isset( $_GET['action'] ) ) {
+		if ( ! isset( $caps ) ) {
+			// A user other than the current user is being created or updated.
 
-			//add to error array if the password does not meet requirements
-			if ( $password_meets_requirements && ! $errors->get_error_data( 'pass' ) && isset( $_POST['pass1'] ) && trim( strlen( $_POST['pass1'] ) ) > 0 && isset( $_POST['password_strength'] ) && $_POST['password_strength'] != 'strong' ) {
-				$errors->add( 'pass', __( '<strong>ERROR</strong>: You MUST Choose a password that rates at least <em>Strong</em> on the meter. Your setting have NOT been saved.', 'better-wp-security' ) );
+			$the_role = $wp_roles->get_role( $role );
+
+			// Merge the role's list of caps with the caps added to the user.
+			$caps = array_merge( $user_caps, array_keys( $the_role->capabilities ) );
+
+			// Ensure that there aren't any duplicate caps.
+			$caps = array_unique( $caps );
+		}
+
+		if ( $this->fails_enforcement( $user, $caps, $password_strength ) ) {
+			if ( $update ) {
+				$errors->add( 'pass', wp_kses( __( '<strong>Error</strong>: Due to site rules, a strong password is required. Please choose a new password that rates as <strong>Strong</strong> on the meter. The user changes have not been saved.', 'better-wp-security' ), array( 'strong' => array() ) ) );
+			} else {
+				$errors->add( 'pass', wp_kses( __( '<strong>Error</strong>: Due to site rules, a strong password is required. Please choose a new password that rates as <strong>Strong</strong> on the meter. The user has not been created.', 'better-wp-security' ), array( 'strong' => array() ) ) );
 			}
-
 		}
 
 		return $errors;
 	}
 
 	/**
-	 * Enqueue script to check password strength
+	 * Handle password reset requests.
 	 *
-	 * @return void
+	 * @param WP_Error $errors WP_Error object.
+	 * @param WP_User  $user   WP_User object.
+	 *
+	 * @return WP_Error
 	 */
-	public function login_script_js() {
+	public function validate_password_reset( $errors, $user ) {
+		if ( ! isset( $_POST['pass1'] ) ) {
+			// The validate_password_reset action fires when first rendering the reset page and when handling the form
+			// submissions. Since the pass1 data is missing, this must be the initial page render. So, we don't need to
+			// do anything yet.
 
-		global $itsec_globals;
-
-		if ( $this->settings['enabled'] === true ) {
-
-			wp_enqueue_script( 'itsec_strong_passwords', $this->module_path . 'js/strong-passwords.js', array( 'jquery' ), $itsec_globals['plugin_build'] );
-
-			//make sure the text of the warning is translatable
-			wp_localize_script( 'itsec_strong_passwords', 'strong_password_error_text', array( 'text' => __( 'Sorry, but you must enter a strong password.', 'better-wp-security' ) ) );
-
+			return;
 		}
 
+		$caps = array_keys( $user->allcaps );
+
+		if ( $this->fails_enforcement( $user, $caps ) ) {
+			$errors->add( 'pass', wp_kses( __( '<strong>Error</strong>: Due to site rules, a strong password is required. Please choose a new password that rates as <strong>Strong</strong> on the meter. The password has not been updated.', 'better-wp-security' ), array( 'strong' => array() ) ) );
+		}
 	}
 
 	/**
-	 * Ad js for reset password page
+	 * Determine if the user requires enforcement and if it fails that enforcement.
 	 *
-	 * @since 4.0.10
+	 * @param WP_User|object $user              Requires either a valid WP_User object or an object that has the following members:
+	 *                                          user_login, first_name, last_name, nickname, display_name, user_email, user_url, and
+	 *                                          description. A member of user_pass is required if $password_strength is false.
+	 * @param int|boolean    $password_strength [optional] An integer value representing the password strength, if known, or false.
+	 *                                          Defaults to false.
 	 *
-	 * @return void
+	 * @return boolean True if the user requires enforcement and has a password weaker than strong. False otherwise.
 	 */
-	public function shut_down_js() {
+	private function fails_enforcement( $user, $caps, $password_strength = false ) {
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-canonical-roles.php' );
+		$role = ITSEC_Lib_Canonical_Roles::get_role_from_caps( $caps );
+		$min_role = ITSEC_Modules::get_setting( 'strong-passwords', 'role' );
 
-		?>
+		if ( ! ITSEC_Lib_Canonical_Roles::is_canonical_role_at_least( $min_role, $role ) ) {
+			return false;
+		}
 
-		<script type="text/javascript">
-			jQuery( document ).ready( function () {
-				jQuery( '#resetpassform' ).submit( function () {
-					if ( ! jQuery( '#pass-strength-result' ).hasClass( 'strong' ) ) {
-						alert( '<?php _e( "Sorry, but you must enter a strong password", "ithemes-security" ); ?>' );
-						return false;
-					}
-				} );
-			} );
-		</script>
+		if ( false === $password_strength ) {
+			if ( ! empty( $_POST['password_strength'] ) && 'strong' !== $_POST['password_strength'] ) {
+				// We want to validate the password strength if the form data says that the password is strong since we want
+				// to protect against spoofing. If the form data says that the password isn't strong, believe it.
 
-	<?php
+				$password_strength = 1;
+			} else {
+				// The form data does not indicate a password strength or the data claimed that the password is strong,
+				// which is a claim that must be validated. Use the zxcvbn library to find the password strength score.
+
+				$penalty_strings = array(
+					$user->user_login,
+					$user->first_name,
+					$user->last_name,
+					$user->nickname,
+					$user->display_name,
+					$user->user_email,
+					$user->user_url,
+					$user->description,
+					get_site_option( 'admin_email' ),
+				);
+
+				$results = ITSEC_Lib::get_password_strength_results( $user->user_pass, $penalty_strings );
+				$password_strength = $results->score;
+			}
+		}
+
+		if ( $password_strength < 4 ) {
+			return true;
+		}
+
+		return false;
 	}
-
 }
+
+new ITSEC_Strong_Passwords();

@@ -1,24 +1,34 @@
 <?php
+
 /*
-Plugin Name: iThemes Security
-Plugin URI: https://ithemes.com/security
-Description: Protect your WordPress site by hiding vital areas of your site, protecting access to important files, preventing brute-force login attempts, detecting attack attempts and more.
-Version: 5.0.1
-Text Domain: better-wp-security
-Domain Path: /lang
-Author: iThemes.com
-Author URI: https://ithemes.com
-Network: True
-License: GPLv2
-Copyright 2015  iThemes  (email : info@ithemes.com)
-*/
+ * Plugin Name: iThemes Security
+ * Plugin URI: https://ithemes.com/security
+ * Description: Take the guesswork out of WordPress security. iThemes Security offers 30+ ways to lock down WordPress in an easy-to-use WordPress security plugin.
+ * Author: iThemes
+ * Author URI: https://ithemes.com
+ * Version: 5.7.1
+ * Text Domain: better-wp-security
+ * Network: True
+ * License: GPLv2
+ */
 
-if ( is_admin() ) {
 
-	require( dirname( __FILE__ ) . '/lib/icon-fonts/load.php' ); //Loads iThemes fonts
-	require( dirname( __FILE__ ) . '/lib/one-version/index.php' ); //Only have one version of the plugin
+$locale = apply_filters( 'plugin_locale', get_locale(), 'better-wp-security' );
+load_textdomain( 'better-wp-security', WP_LANG_DIR . "/plugins/better-wp-security/better-wp-security-$locale.mo" );
+load_plugin_textdomain( 'better-wp-security' );
 
+if ( isset( $itsec_dir ) || class_exists( 'ITSEC_Core' ) ) {
+	include( dirname( __FILE__ ) . '/core/show-multiple-version-notice.php' );
+	return;
 }
 
-require_once( dirname( __FILE__ ) .  '/core/class-itsec-core.php' );
-new ITSEC_Core( __FILE__, __( 'iThemes Security', 'better-wp-security' ) );
+
+$itsec_dir = dirname( __FILE__ );
+
+if ( is_admin() ) {
+	require( "$itsec_dir/lib/icon-fonts/load.php" );
+}
+
+require( "$itsec_dir/core/class-itsec-core.php" );
+$itsec_core = ITSEC_Core::get_instance();
+$itsec_core->init( __FILE__, __( 'iThemes Security', 'better-wp-security' ) );

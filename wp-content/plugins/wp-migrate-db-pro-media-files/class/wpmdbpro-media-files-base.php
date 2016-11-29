@@ -36,7 +36,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		parent::__construct( $plugin_file_path );
 
 		$this->media_diff_batch_time        = apply_filters( 'wpmdb_media_diff_batch_time', 10 );
-		$this->media_diff_batch_limit       = apply_filters( 'wpmdb_media_diff_batch_limit', 500 );
+		$this->media_diff_batch_limit       = apply_filters( 'wpmdb_media_diff_batch_limit', 300 );
 		$this->media_files_batch_time_limit = apply_filters( 'wpmdb_media_files_batch_time_limit', 15 );
 
 		$this->accepted_fields = array(
@@ -103,7 +103,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	 * @param string $prefix Blog db prefix
 	 * @param int    $blog   Blog ID
 	 * @param int    $limit  Limit passed to SQL query (for batching)
-	 * @param int    $offset Offset (post ID) passed to SQL query (for batching)
+	 * @param array  $offset Offset (blog ID, post ID) passed to SQL query (for batching)
 	 *
 	 * @return array Attachments
 	 */
@@ -162,7 +162,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	 *
 	 * @param mixed $blogs  Blogs
 	 * @param int   $limit  Max attachments limit (for batching)
-	 * @param int   $offset Optional offset to use instead of $blog['last_post']
+	 * @param array $offset Optional offset (blog ID, post ID) to use instead of $blog['last_post']
 	 *
 	 * @return array Local attachments and blogs
 	 */
@@ -181,13 +181,19 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 				continue;
 			}
 
-			if ( is_null( $offset ) ) {
-				$offset = $blog['last_post'];
+			$blog_offset = $blog['last_post'];
+			if ( is_array( $offset ) ) {
+				if ( $offset[0] > $blog_id ) {
+					$blogs[ $blog_id ]['processed'] = 1;
+					continue;
+				} elseif ( $blog_id == $offset[0] ) {
+					$blog_offset = $offset[1];
+				}
 			}
 
-			$attachments = $this->get_attachments( $blog['prefix'], $blog_id, $limit, $offset );
-			$count       = count( $attachments );
 
+			$attachments = $this->get_attachments( $blog['prefix'], $blog_id, $limit, $blog_offset );
+			$count       = count( $attachments );
 			if ( 0 == $count ) {
 				// no more attachments, record the blog ID to skip next time
 				$blogs[ $blog_id ]['processed'] = 1;
@@ -218,7 +224,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	/**
 	 * Return all attachment files across all blogs
 	 *
-	 * @param int $offset Attachment ID offset
+	 * @param array $offset (blog ID, attachment ID) offset
 	 *
 	 * @return array Local media attachment files and last attachment ID
 	 */
@@ -227,17 +233,23 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		$last_attachment_id           = 0;
 
 		$blogs                   = $this->get_blogs();
-		$local_media_attachments = $this->get_local_attachments_batch( $blogs, $this->media_diff_batch_limit, ( int ) $offset );
+		$local_media_attachments = $this->get_local_attachments_batch( $blogs, $this->media_diff_batch_limit, $offset );
+		$last_blog_id            = 1;
 
 		// Get file paths from attachments
 		foreach ( $local_media_attachments['attachments'] as $blog_id => $attachments ) {
 			foreach ( $attachments as $attachment ) {
-				$local_media_attachment_files[] = $attachment['file'];
-				$last_attachment_id             = $attachment['ID'];
+				if ( ! empty( $attachment['file_size'] ) ) {
+					$local_media_attachment_files[] = $attachment['file'];
+					$last_blog_id                   = $blog_id;
+					$last_attachment_id             = $attachment['ID'];
+				}
 
 				if ( isset( $attachment['sizes'] ) && ! empty( $attachment['sizes'] ) ) {
 					foreach ( $attachment['sizes'] as $size ) {
-						$local_media_attachment_files[] = $size['file'];
+						if ( ! empty( $size['file_size'] ) ) {
+							$local_media_attachment_files[] = $size['file'];
+						}
 					}
 				}
 			}
@@ -245,6 +257,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 
 		return array(
 			'files'              => $local_media_attachment_files,
+			'last_blog_id'       => $last_blog_id,
 			'last_attachment_id' => $last_attachment_id,
 		);
 	}
@@ -308,13 +321,14 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 			$finish_time = microtime( true ) + $this->media_files_batch_time_limit;
 		}
 
-		$dir      = ( '/' == $dir ) ? '' : $dir;
-		$dir_path = $upload_dir . $dir;
+		$dir       = ( '/' == $dir ) ? '' : $dir;
+		$dir_path  = $upload_dir . $dir;
+		$sub_paths = glob( $dir_path . '*', GLOB_MARK );
 
 		// Get all the files except the one we use to store backups.
 		$wpmdb_upload_folder = $this->get_upload_info();
 		$pattern             = '/' . preg_quote( $wpmdb_upload_folder, '/' ) . '/';
-		$files               = preg_grep( $pattern, glob( $dir_path . '*', GLOB_MARK ), PREG_GREP_INVERT );
+		$files               = preg_grep( $pattern, $sub_paths ? $sub_paths : array(), PREG_GREP_INVERT );
 
 		$reached_start_file = false;
 
@@ -348,6 +362,10 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 				continue;
 			}
 
+			if ( apply_filters( 'wpmdbmf_exclude_local_media_file_from_removal', false, $upload_dir, $short_file_path, $this ) ) {
+				continue;
+			}
+
 			$local_media_files[] = $short_file_path;
 		}
 	}
@@ -370,9 +388,14 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 			return;
 		}
 		foreach ( $attachment['sizes'] as $size ) {
+			$original_file_name = $size['file'];
+			// if dir_prefix is set, then the remote is a multisite and we need to compare the file without the subsite directory prefix
+			if ( ! is_multisite() && $attachment['dir_prefix'] ) {
+				$size['file'] = str_replace( $attachment['dir_prefix'], '', $size['file'] );
+			}
 			if ( isset( $size['file_size'] ) && ( ! $local_attachment || ( $local_attachment && ! $this->local_image_size_file_exists( $size, $local_attachment ) ) ) ) {
 				// if the remote image size file exists on the remote file system
-				$files_to_migrate[ $size['file'] ] = $size['file_size'];
+				$files_to_migrate[ $original_file_name ] = $size['file_size'];
 			}
 		}
 	}
@@ -461,11 +484,10 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		}
 
 		$filename = $attachment['file'];
-		if ( ! $this->is_current_blog( $attachment['blog_id'] ) ) {
-			// if not default blog strip the site dir prefix from the filename for searching
-			$site_prefix = $this->get_dir_prefix( $attachment );
-			$filename    = str_replace( $site_prefix, '', $filename );
-		}
+
+		$dir_prefix = ( isset( $attachment['dir_prefix'] ) && strlen( $attachment['dir_prefix'] ) ) ? $attachment['dir_prefix'] : $this->get_dir_prefix( $attachment );
+		// file names are stored in DB without dir prefix, so if the file has one then we need to remove it
+		$filename = str_replace( $dir_prefix, '', $filename );
 
 		$local_attachment = $this->get_attachment_results( $prefix, 'row', array( $attachment['blog_id'], $filename ) );
 
@@ -488,13 +510,13 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	 * @return array The updated attachment
 	 */
 	function process_attachment_data( $attachment ) {
-		// get any site directory prefix for multisite blogs
-		if ( ! $this->is_current_blog( $attachment['blog_id'] ) ) {
-			$upload_dir         = $this->get_dir_prefix( $attachment );
-			$attachment['file'] = $upload_dir . $attachment['file'];
+		// prepend site directory prefix for multisite blogs
+		$attachment['dir_prefix'] = $this->get_dir_prefix( $attachment );
+		if ( is_multisite() && $attachment['dir_prefix'] ) {
+			$attachment['file'] = $attachment['dir_prefix'] . $attachment['file'];
 		}
 
-		// use the correct directory to use for image size files
+		// use the correct directory for image size files
 		$upload_dir = str_replace( basename( $attachment['file'] ), '', $attachment['file'] );
 		if ( ! empty( $attachment['metadata'] ) ) {
 			$attachment['metadata'] = @unserialize( $attachment['metadata'] );
@@ -540,7 +562,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		$upload_dir = $this->uploads_dir();
 
 		foreach ( $local_files as $local_file ) {
-			if ( false === $this->filesystem->unlink( $upload_dir . $local_file ) ) {
+			if ( false === $this->filesystem->unlink( $upload_dir . $local_file ) && $this->filesystem->file_exists( $upload_dir . $local_file ) ) {
 				$errors[] = sprintf( __( 'Could not delete "%s"', 'wp-migrate-db-pro-media-files' ), $upload_dir . $local_file ) . ' (#122mf)';
 			}
 		}
@@ -551,11 +573,12 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	/**
 	 * Compare a set of files with those on the local filesystem
 	 *
-	 * @param mixed $files Files to compare
+	 * @param mixed  $files Files to compare
+	 * @param string $intent
 	 *
 	 * @return array $files_to_remove Files that do not exist locally
 	 */
-	function get_files_not_on_local( $files ) {
+	function get_files_not_on_local( $files, $intent ) {
 		if ( ! is_array( $files ) ) {
 			$files = @unserialize( $files );
 		}
@@ -564,7 +587,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		$files_to_remove = array();
 
 		foreach ( $files as $file ) {
-			if ( ! $this->filesystem->file_exists( $upload_dir . $file ) ) {
+			if ( ! $this->filesystem->file_exists( $upload_dir . apply_filters( 'wpmdbmf_file_not_on_local', $file, $intent, $this ) ) ) {
 				$files_to_remove[] = $file;
 			}
 		}
@@ -611,7 +634,7 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 		}
 
 		// get size of image on disk
-		$size = $this->get_file_size( $attachment['file'] );
+		$size = $this->get_file_size( $attachment['file'], ( isset( $attachment['dir_prefix'] ) ? $attachment['dir_prefix'] : '' ) );
 		if ( false !== $size ) {
 			$attachment['file_size'] = $size;
 		}
@@ -622,14 +645,19 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 	/**
 	 * Calculate size on disk of a file
 	 *
-	 * @param string $file File path
+	 * @param string $file       File path
+	 * @param string $dir_prefix Multisite blog specific directory
 	 *
 	 * @return int|bool File size if exists, false otherwise
 	 */
-	function get_file_size( $file ) {
+	function get_file_size( $file, $dir_prefix = '' ) {
 		$upload_dir = untrailingslashit( $this->uploads_dir() );
 		if ( ! $this->filesystem->file_exists( $upload_dir ) ) {
 			return false;
+		}
+
+		if ( ! is_multisite() && $dir_prefix ) {
+			$file = str_replace( $dir_prefix, '', $file );
 		}
 
 		$file = $upload_dir . DIRECTORY_SEPARATOR . $file;
@@ -739,10 +767,16 @@ class WPMDBPro_Media_Files_Base extends WPMDBPro_Addon {
 			'deleted'  => 0,
 			'archived' => 0,
 		);
-		$blogs = wp_get_sites( $args );
+
+		if ( version_compare( $GLOBALS['wp_version'], '4.6', '>=' ) ) {
+			$blogs = get_sites( $args );
+		} else {
+			$blogs = wp_get_sites( $args );
+		}
 
 		foreach ( $blogs as $blog ) {
-			if ( apply_filters( 'wpmdbmf_include_subsite', true, $blog['blog_id'] ) ) {
+			$blog = (array) $blog;
+			if ( apply_filters( 'wpmdbmf_include_subsite', true, $blog['blog_id'], $this ) ) {
 				$blog_ids[] = $blog['blog_id'];
 			}
 		}

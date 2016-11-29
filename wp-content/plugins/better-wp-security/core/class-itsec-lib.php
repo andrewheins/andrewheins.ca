@@ -10,40 +10,6 @@
  * @since   4.0.0
  */
 final class ITSEC_Lib {
-
-	/**
-	 * Converts CIDR to ip range.
-	 *
-	 * Modified from function at http://stackoverflow.com/questions/4931721/getting-list-ips-from-cidr-notation-in-php
-	 * as it was far more elegant than my own solution
-	 *
-	 * @since 4.0.0.0
-	 *
-	 * @param string $cidr cidr notation to convert
-	 *
-	 * @return array        range of ips returned
-	 */
-	public static function cidr_to_range( $cidr ) {
-
-		$range = array();
-
-		if ( strpos( $cidr, '/' ) ) {
-
-			$cidr = explode( '/', $cidr );
-
-			$range[] = long2ip( ( ip2long( $cidr[0] ) ) & ( ( - 1 << ( 32 - (int) $cidr[1] ) ) ) );
-			$range[] = long2ip( ( ip2long( $cidr[0] ) ) + pow( 2, ( 32 - (int) $cidr[1] ) ) - 1 );
-
-		} else { //if not a range just return the original ip
-
-			$range[] = $cidr;
-
-		}
-
-		return $range;
-
-	}
-
 	/**
 	 * Clear caches.
 	 *
@@ -79,6 +45,8 @@ final class ITSEC_Lib {
 
 		}
 
+
+		do_action( 'itsec-lib-clear-caches' );
 	}
 
 	/**
@@ -112,8 +80,8 @@ final class ITSEC_Lib {
 				log_priority int(2) NOT NULL DEFAULT 1,
 				log_date datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 				log_date_gmt datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-				log_host varchar(20),
-				log_username varchar(20),
+				log_host varchar(40),
+				log_username varchar(60),
 				log_user bigint(20) UNSIGNED,
 				log_url varchar(255),
 				log_referrer varchar(255),
@@ -131,9 +99,9 @@ final class ITSEC_Lib {
 				lockout_start_gmt datetime NOT NULL,
 				lockout_expire datetime NOT NULL,
 				lockout_expire_gmt datetime NOT NULL,
-				lockout_host varchar(20),
+				lockout_host varchar(40),
 				lockout_user bigint(20) UNSIGNED,
-				lockout_username varchar(20),
+				lockout_username varchar(60),
 				lockout_active int(1) NOT NULL DEFAULT 1,
 				PRIMARY KEY  (lockout_id),
 				KEY lockout_expire_gmt (lockout_expire_gmt),
@@ -149,9 +117,9 @@ final class ITSEC_Lib {
 				temp_type varchar(20) NOT NULL,
 				temp_date datetime NOT NULL,
 				temp_date_gmt datetime NOT NULL,
-				temp_host varchar(20),
+				temp_host varchar(40),
 				temp_user bigint(20) UNSIGNED,
-				temp_username varchar(20),
+				temp_username varchar(60),
 				PRIMARY KEY  (temp_id),
 				KEY temp_date_gmt (temp_date_gmt),
 				KEY temp_host (temp_host),
@@ -174,17 +142,9 @@ final class ITSEC_Lib {
 	 * @return string path to wp-config.php
 	 * */
 	public static function get_config() {
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-config-file.php' );
 
-		if ( file_exists( trailingslashit( ABSPATH ) . 'wp-config.php' ) ) {
-
-			return trailingslashit( ABSPATH ) . 'wp-config.php';
-
-		} else {
-
-			return trailingslashit( dirname( ABSPATH ) ) . 'wp-config.php';
-
-		}
-
+		return ITSEC_Lib_Config_File::get_wp_config_file_path();
 	}
 
 	/**
@@ -238,23 +198,23 @@ final class ITSEC_Lib {
 		if ( is_multisite() && function_exists( 'domain_mapping_warning' ) ) {
 			return '*';
 		}
-		
-		
+
+
 		$host = parse_url( $url, PHP_URL_HOST );
-		
+
 		if ( false === $host ) {
 			return '*';
 		}
 		if ( 'www.' == substr( $host, 0, 4 ) ) {
 			return substr( $host, 4 );
 		}
-		
+
 		$host_parts = explode( '.', $host );
-		
+
 		if ( count( $host_parts ) > 2 ) {
 			$host_parts = array_slice( $host_parts, -2, 2 );
 		}
-		
+
 		return implode( '.', $host_parts );
 	}
 
@@ -335,19 +295,9 @@ final class ITSEC_Lib {
 	 * @return string path to .htaccess
 	 */
 	public static function get_htaccess() {
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-config-file.php' );
 
-		global $itsec_globals;
-
-		if ( 'nginx' === ITSEC_Lib::get_server() ) {
-
-			return $itsec_globals['settings']['nginx_file'];
-
-		} else {
-
-			return ITSEC_Lib::get_home_path() . '.htaccess';
-
-		}
-
+		return ITSEC_Lib_Config_File::get_server_config_file_path();
 	}
 
 	/**
@@ -360,54 +310,68 @@ final class ITSEC_Lib {
 	 *
 	 * @return  String The IP address of the user
 	 */
-	public static function get_ip() {
-
-		global $itsec_globals;
-
-		if ( isset( $itsec_globals['settings']['proxy_override'] ) && true === $itsec_globals['settings']['proxy_override'] ) {
-			return esc_sql( $_SERVER['REMOTE_ADDR'] );
+	public static function get_ip( $use_cache = true ) {
+		if ( isset( $GLOBALS['__itsec_remote_ip'] ) && $use_cache ) {
+			return $GLOBALS['__itsec_remote_ip'];
 		}
 
-		//Just get the headers if we can or else use the SERVER global
-		if ( function_exists( 'apache_request_headers' ) ) {
-
-			$headers = apache_request_headers();
-
-		} else {
-
-			$headers = $_SERVER;
-
+		if ( ITSEC_Modules::get_setting( 'global', 'proxy_override' ) ) {
+			$GLOBALS['__itsec_remote_ip'] = $_SERVER['REMOTE_ADDR'];
+			return $GLOBALS['__itsec_remote_ip'];
 		}
 
-		//Get the forwarded IP if it exists
-		if ( array_key_exists( 'X-Forwarded-For', $headers ) &&
-		     (
-			     filter_var( $headers['X-Forwarded-For'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ||
-			     filter_var( $headers['X-Forwarded-For'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) )
-		) {
+		$headers = array(
+			'HTTP_CF_CONNECTING_IP', // CloudFlare
+			'HTTP_X_FORWARDED_FOR',  // Squid and most other forward and reverse proxies
+			'REMOTE_ADDR',           // Default source of remote IP
+		);
 
-			$the_ip = $headers['X-Forwarded-For'];
+		$headers = apply_filters( 'itsec_filter_remote_addr_headers', $headers );
 
-		} elseif (
-			array_key_exists( 'HTTP_X_FORWARDED_FOR', $headers ) &&
-			(
-				filter_var( $headers['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ||
-				filter_var( $headers['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 )
-			)
-		) {
+		$headers = (array) $headers;
 
-			$the_ip = $headers['HTTP_X_FORWARDED_FOR'];
-
-		} else if ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
-
-			$the_ip = $_SERVER['REMOTE_ADDR'];
-
-		} else {
-			$the_ip = '';
+		if ( ! in_array( 'REMOTE_ADDR', $headers ) ) {
+			$headers[] = 'REMOTE_ADDR';
 		}
 
-		return esc_sql( $the_ip );
+		// Loop through twice. The first run won't accept a reserved or private range IP. If an acceptable IP is not
+		// found, try again while accepting reserved or private range IPs.
+		for ( $x = 0; $x < 2; $x++ ) {
+			foreach ( $headers as $header ) {
+				if ( ! isset( $_SERVER[$header] ) ) {
+					continue;
+				}
 
+				$ip = trim( $_SERVER[$header] );
+
+				if ( empty( $ip ) ) {
+					continue;
+				}
+
+				if ( false !== ( $comma_index = strpos( $_SERVER[$header], ',' ) ) ) {
+					$ip = substr( $ip, 0, $comma_index );
+				}
+
+				if ( 0 === $x ) {
+					// First run through. Only accept an IP not in the reserved or private range.
+					$ip = filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_NO_PRIV_RANGE );
+				} else {
+					$ip = filter_var( $ip, FILTER_VALIDATE_IP );
+				}
+
+				if ( ! empty( $ip ) ) {
+					break;
+				}
+			}
+
+			if ( ! empty( $ip ) ) {
+				break;
+			}
+		}
+
+		$GLOBALS['__itsec_remote_ip'] = (string) $ip;
+
+		return $GLOBALS['__itsec_remote_ip'];
 	}
 
 	/**
@@ -438,47 +402,12 @@ final class ITSEC_Lib {
 	 */
 	public static function get_module_path( $file ) {
 
-		global $itsec_globals;
-
-		$path = str_replace( $itsec_globals['plugin_dir'], '', dirname( $file ) );
+		$path = str_replace( ITSEC_Core::get_plugin_dir(), '', dirname( $file ) );
 		$path = ltrim( str_replace( '\\', '/', $path ), '/' );
 
-		return trailingslashit( trailingslashit( $itsec_globals['plugin_url'] ) . $path );
+		$url_base = trailingslashit( plugin_dir_url( ITSEC_Core::get_plugin_file() ) );
 
-	}
-
-	/**
-	 * Returns a psuedo-random string of requested length.
-	 *
-	 * Builds a random string similar to the WordPress password functions.
-	 *
-	 * @since 4.0.0
-	 *
-	 * @param int  $length        how long the string should be (max 62)
-	 * @param bool $base32        true if use only base32 characters to generate
-	 * @param bool $special_chars whether to include special characters in generation
-	 *
-	 * @return string
-	 */
-	public static function get_random( $length, $base32 = false, $special_chars = false ) {
-
-		if ( true === $base32 ) {
-
-			$string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-
-		} else {
-
-			$string = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-
-			if ( true === $special_chars ) {
-
-				$string .= '_)(*&^%$#@!~`:;<>,.?/{}[]|';
-
-			}
-
-		}
-
-		return substr( str_shuffle( $string ), mt_rand( 0, strlen( $string ) - $length ), $length );
+		return trailingslashit( $url_base . $path );
 
 	}
 
@@ -492,33 +421,9 @@ final class ITSEC_Lib {
 	 * @return string|bool server type the user is using of false if undetectable.
 	 */
 	public static function get_server() {
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-utility.php' );
 
-		//Allows to override server authentication for testing or other reasons.
-		if ( defined( 'ITSEC_SERVER_OVERRIDE' ) ) {
-			return ITSEC_SERVER_OVERRIDE;
-		}
-
-		$server_raw = strtolower( filter_var( $_SERVER['SERVER_SOFTWARE'], FILTER_SANITIZE_STRING ) );
-
-		//figure out what server they're using
-		if ( false !== strpos( $server_raw, 'apache' ) ) {
-
-			return 'apache';
-
-		} elseif ( false !== strpos( $server_raw, 'nginx' ) ) {
-
-			return 'nginx';
-
-		} elseif ( false !== strpos( $server_raw, 'litespeed' ) ) {
-
-			return 'litespeed';
-
-		} else { //unsupported server
-
-			return false;
-
-		}
-
+		return ITSEC_Lib_Utility::get_web_server();
 	}
 
 	/**
@@ -578,90 +483,84 @@ final class ITSEC_Lib {
 
 	}
 
-	/**
-	 * Converts IP with a netmask wildcards to one with * instead
-	 *
-	 * Allows use of wildcards in IP address by converting them to standard notation.
-	 *
-	 * @since 4.0.0
-	 *
-	 * @param string $ip ip to convert
-	 *
-	 * @return string     the converted ip
-	 */
-	public static function ip_mask_to_range( $ip ) {
-
-		if ( strpos( $ip, '/' ) ) {
-
-			$parts  = explode( '/', trim( $ip ) );
-			$octets = array_reverse( explode( '.', trim( $parts[0] ) ) );
-
-			if ( isset( $parts[1] ) && 0 < intval( $parts[1] ) ) {
-
-				$wildcards = ( 32 - $parts[1] ) / 8;
-
-				for ( $count = 0; $count < $wildcards; $count ++ ) {
-
-					$octets[$count] = '[0-9]+';
-
-				}
-
-				return implode( '.', array_reverse( $octets ) );
-
-			} else {
-
-				return $ip;
-
-			}
-
-		}
-
-		return $ip;
-
+	public static function get_whitelisted_ips() {
+		return apply_filters( 'itsec_white_ips', array() );
 	}
 
 	/**
-	 * Converts IP with * wildcards to one with a netmask instead
+	 * Determines whether a given IP address is whiteliste
 	 *
-	 * Attempts to create a standardized CIDR block from an IP using wildcards.
+	 * @param  string  $ip_to_check     ip to check (can be in CIDR notation)
+	 * @param  array   $whitelisted_ips ip list to compare to if not yet saved to options
+	 * @param  boolean $current         whether to whitelist the current ip or not (due to saving, etc)
 	 *
-	 * @since 4.0.0
-	 *
-	 * @param string $ip ip to convert
-	 *
-	 * @return string     the converted ip
+	 * @return boolean true if whitelisted or false
 	 */
-	public static function ip_wild_to_mask( $ip ) {
+	public static function is_ip_whitelisted( $ip, $whitelisted_ips = null, $current = false ) {
+		global $itsec_lockout;
 
-		$host_parts = array_reverse( explode( '.', trim( $ip ) ) );
+		$ip = sanitize_text_field( $ip );
 
-		if ( strpos( $ip, '*' ) ) {
-
-			$mask           = 32; //used to calculate netmask with wildcards
-			$converted_host = str_replace( '*', '0', $ip );
-
-			//convert hosts with wildcards to host with netmask and create rule lines
-			foreach ( $host_parts as $part ) {
-
-				if ( '*' === $part ) {
-					$mask = $mask - 8;
-				}
-
-			}
-
-			$converted_host = trim( $converted_host );
-
-			//Apply a mask if we had to convert
-			if ( 0 < $mask ) {
-				$converted_host .= '/' . $mask;
-			}
-
-			return $converted_host;
-
+		if ( ITSEC_Lib::get_ip() === $ip && $itsec_lockout->is_visitor_temp_whitelisted() ) {
+			return true;
 		}
 
-		return $ip;
+		if ( ! class_exists( 'ITSEC_Lib_IP_Tools' ) ) {
+			require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-ip-tools.php' );
+		}
 
+		if ( is_null( $whitelisted_ips ) ) {
+			$whitelisted_ips = self::get_whitelisted_ips();
+		}
+
+		if ( $current ) {
+			$whitelisted_ips[] = ITSEC_Lib::get_ip(); //add current user ip to whitelist
+		}
+
+		foreach ( $whitelisted_ips as $whitelisted_ip ) {
+			if ( ITSEC_Lib_IP_Tools::intersect( $ip, ITSEC_Lib_IP_Tools::ip_wild_to_ip_cidr( $whitelisted_ip ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
+
+	}
+
+	public static function get_blacklisted_ips() {
+		return apply_filters( 'itsec_filter_blacklisted_ips', array() );
+	}
+
+	/**
+	 * Determines whether a given IP address is blacklisted
+	 *
+	 * @param string $ip              ip to check (can be in CIDR notation)
+	 * @param array  $blacklisted_ips ip list to compare to if not yet saved to options
+	 *
+	 * @return boolean true if blacklisted or false
+	 */
+	public static function is_ip_blacklisted( $ip = null, $blacklisted_ips = null ) {
+		$ip = sanitize_text_field( $ip );
+
+		if ( empty( $ip ) ) {
+			$ip = ITSEC_Lib::get_ip();
+		}
+
+		if ( ! class_exists( 'ITSEC_Lib_IP_Tools' ) ) {
+			require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-ip-tools.php' );
+		}
+
+		if ( is_null( $blacklisted_ips ) ) {
+			$blacklisted_ips = self::get_blacklisted_ips();
+		}
+
+		foreach ( $blacklisted_ips as $blacklisted_ip ) {
+			if ( ITSEC_Lib_IP_Tools::intersect( $ip, ITSEC_Lib_IP_Tools::ip_wild_to_ip_cidr( $blacklisted_ip ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -688,17 +587,13 @@ final class ITSEC_Lib {
 	 *
 	 * @return mixed|bool true if known safe false if unsafe or null if untested
 	 */
-	public static function safe_jquery_version() {
+	public static function is_jquery_version_safe() {
 
-		$jquery_version = get_site_option( 'itsec_jquery_version' );
+		$jquery_version = ITSEC_Modules::get_setting( 'wordpress-tweaks', 'jquery_version' );
 
-		if ( false !== $jquery_version && version_compare( $jquery_version, '1.6.3', '>=' ) ) {
+		if ( ! empty( $jquery_version ) && version_compare( $jquery_version, '1.6.3', '>=' ) ) {
 
 			return true;
-
-		} elseif ( false === $jquery_version ) {
-
-			return null;
 
 		}
 
@@ -837,57 +732,6 @@ final class ITSEC_Lib {
 	}
 
 	/**
-	 * Validates a list of ip addresses.
-	 *
-	 * Makes sure that the provided IP addresses are in fact valid IPV4 addresses.
-	 *
-	 * @since 4.0.0
-	 *
-	 * @param string $ip string of hosts to check
-	 *
-	 * @return array array of good hosts or false
-	 */
-	public static function validates_ip_address( $ip ) {
-		$ip = trim( filter_var( $ip, FILTER_SANITIZE_STRING ) );
-		
-		if ( substr_count( $ip, '.' ) !== 3 ) {
-			return false;
-		}
-		
-		$has_cidr = ( false !== strpos( $ip, '/' ) );
-		$has_wildcard = ( false !== strpos( $ip, '*' ) );
-		
-		if ( $has_cidr && $has_wildcard ) {
-			return false;
-		}
-		
-		$ip_digit_regex = '(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
-		$cidr_digit_regex = '(?:3[0-2]|2[0-9]|1[1-9]|[148])';
-		
-		$ip_regex = "(?:$ip_digit_regex\.){3}$ip_digit_regex";
-		
-		if ( $has_cidr ) {
-			return (boolean) preg_match( "{^$ip_regex/$cidr_digit_regex$}", $ip );
-		}
-		
-		if ( $has_wildcard ) {
-			$wildcard_count = substr_count( $ip, '*' );
-			
-			if ( 1 === $wildcard_count ) {
-				return (boolean) preg_match( "{^(?:$ip_digit_regex\.){3}\*$}", $ip );
-			} else if ( 2 === $wildcard_count ) { 
-				return (boolean) preg_match( "{^(?:$ip_digit_regex\.){2}\*\.\*$}", $ip );
-			} else if ( 3 === $wildcard_count ) { 
-				return (boolean) preg_match( "{^(?:$ip_digit_regex\.)\*\.\*\.\*$}", $ip );
-			}
-			
-			return false;
-		}
-		
-		return (boolean) preg_match( "{^$ip_regex$}", $ip );
-	}
-	
-	/**
 	 * Validates a file path
 	 *
 	 * Adapted from http://stackoverflow.com/questions/4049856/replace-phps-realpath/4050444#4050444 as a replacement for PHP's realpath
@@ -977,4 +821,82 @@ final class ITSEC_Lib {
 
 	}
 
+	public static function show_status_message( $message ) {
+		echo "<div class=\"updated fade\"><p><strong>$message</strong></p></div>\n";
+	}
+
+	public static function show_error_message( $message ) {
+		if ( is_wp_error( $message ) ) {
+			$message = $message->get_error_message();
+		}
+
+		if ( ! is_string( $message ) ) {
+			return;
+		}
+
+		echo "<div class=\"error\"><p><strong>$message</strong></p></div>\n";
+	}
+
+	public static function show_inline_status_message( $message ) {
+		echo "<div class=\"updated fade inline\"><p><strong>$message</strong></p></div>\n";
+	}
+
+	public static function show_inline_error_message( $message ) {
+		if ( is_wp_error( $message ) ) {
+			$message = $message->get_error_message();
+		}
+
+		if ( ! is_string( $message ) ) {
+			return;
+		}
+
+		echo "<div class=\"error inline\"><p><strong>$message</strong></p></div>\n";
+	}
+
+	public static function get_user( $user = false ) {
+		if ( $user instanceof WP_User ) {
+			return $user;
+		}
+
+		if ( false === $user ) {
+			$user = wp_get_current_user();
+		} else if ( is_int( $user ) ) {
+			$user = get_user_by( 'id', $user );
+		} else if ( is_string( $user ) ) {
+			$user = get_user_by( 'login', $user );
+		} else {
+			if ( is_object( $user ) ) {
+				$type = 'object(' . get_class( $user ) . ')';
+			} else {
+				$type = gettype( $user );
+			}
+
+			trigger_error( "ITSEC_Lib::get_user() called with an invalid \$user argument. Received \$user variable of type: $type", E_USER_ERROR );
+
+			return false;
+		}
+
+		if ( $user instanceof WP_User ) {
+			return $user;
+		}
+
+		return false;
+	}
+
+	public static function get_password_strength_results( $password, $penalty_strings = array() ) {
+		if ( ! isset( $GLOBALS['itsec_zxcvbn'] ) ) {
+			require_once( ITSEC_Core::get_core_dir() . '/lib/itsec-zxcvbn-php/zxcvbn.php' );
+			$GLOBALS['itsec_zxcvbn'] = new ITSEC_Zxcvbn();
+		}
+
+		return $GLOBALS['itsec_zxcvbn']->test_password( $password, $penalty_strings );
+	}
+
+	public static function get_trace_ip_link( $ip = false ) {
+		if ( empty( $ip ) ) {
+			return 'http://www.traceip.net/';
+		} else {
+			return 'http://www.traceip.net/?query=' . urlencode( $ip );
+		}
+	}
 }

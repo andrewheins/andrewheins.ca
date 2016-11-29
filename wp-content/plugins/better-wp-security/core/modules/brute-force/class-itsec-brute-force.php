@@ -8,11 +8,14 @@ class ITSEC_Brute_Force {
 
 	function run() {
 
-		$this->settings = get_site_option( 'itsec_brute_force' );
+		$this->settings = ITSEC_Modules::get_settings( 'brute-force' );
+		
 		$this->username = null;
 
 		add_action( 'wp_login', array( $this, 'wp_login' ), 10, 2 );
 		add_action( 'wp_login_failed', array( $this, 'wp_login_failed' ), 1, 1 );
+
+		add_filter( 'itsec_logger_displays', array( $this, 'itsec_logger_displays' ) ); //adds logs metaboxes
 
 		add_filter( 'authenticate', array( $this, 'authenticate' ), 10, 3 );
 		add_filter( 'itsec_lockout_modules', array( $this, 'itsec_lockout_modules' ) );
@@ -38,18 +41,18 @@ class ITSEC_Brute_Force {
 		global $itsec_lockout, $itsec_logger;
 
 		//Look for the "admin" user name and ban it if it is set to auto-ban
-		if ( isset( $this->settings['auto_ban_admin'] ) && $this->settings['auto_ban_admin'] === true && trim( sanitize_text_field( $username ) ) == 'admin' ) {
+		if ( isset( $this->settings['auto_ban_admin'] ) && $this->settings['auto_ban_admin'] === true && 'admin' === $username ) {
 
-			$itsec_logger->log_event( 'brute_force', 5, array(), ITSEC_Lib::get_ip(), sanitize_text_field( $username ) );
+			$itsec_logger->log_event( 'brute_force', 5, array(), ITSEC_Lib::get_ip(), $username );
 
-			$itsec_lockout->do_lockout( 'brute_force_admin_user', sanitize_text_field( $username ) );
+			$itsec_lockout->do_lockout( 'brute_force_admin_user', $username );
 
 		}
 
 		//Execute brute force if username or password are empty
 		if ( isset( $_POST['wp-submit'] ) && ( empty( $username ) || empty( $password ) ) ) {
 
-			$user_id = username_exists( sanitize_text_field( $username ) );
+			$user_id = username_exists( $username );
 
 			if ( $user_id === false || $user_id === null ) {
 
@@ -61,16 +64,16 @@ class ITSEC_Brute_Force {
 
 			}
 
-			$itsec_logger->log_event( 'brute_force', 5, array(), ITSEC_Lib::get_ip(), sanitize_text_field( $username ), intval( $user_id ) );
+			$itsec_logger->log_event( 'brute_force', 5, array(), ITSEC_Lib::get_ip(), $username, intval( $user_id ) );
 
-			$itsec_lockout->do_lockout( 'brute_force', sanitize_text_field( $username ) );
+			$itsec_lockout->do_lockout( 'brute_force', $username );
 
 		}
 
 		//Set username for xml_rpc block
 		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST === true ) {
 
-			$this->username = trim( sanitize_text_field( $username ) );
+			$this->username = $username;
 
 		}
 
@@ -89,25 +92,21 @@ class ITSEC_Brute_Force {
 	 */
 	public function itsec_lockout_modules( $lockout_modules ) {
 
-		if ( $this->settings['enabled'] === true ) {
+		$lockout_modules['brute_force'] = array(
+			'type'   => 'brute_force',
+			'reason' => __( 'too many bad login attempts', 'better-wp-security' ),
+			'host'   => $this->settings['max_attempts_host'],
+			'user'   => $this->settings['max_attempts_user'],
+			'period' => $this->settings['check_period'],
+		);
 
-			$lockout_modules['brute_force'] = array(
-				'type'   => 'brute_force',
-				'reason' => __( 'too many bad login attempts', 'better-wp-security' ),
-				'host'   => $this->settings['max_attempts_host'],
-				'user'   => $this->settings['max_attempts_user'],
-				'period' => $this->settings['check_period'],
-			);
-
-			$lockout_modules['brute_force_admin_user'] = array(
-				'type'   => 'brute_force',
-				'reason' => __( 'user tried to login as "admin."', 'better-wp-security' ),
-				'host'   => 1,
-				'user'   => 1,
-				'period' => $this->settings['check_period']
-			);
-
-		}
+		$lockout_modules['brute_force_admin_user'] = array(
+			'type'   => 'brute_force',
+			'reason' => __( 'user tried to login as "admin."', 'better-wp-security' ),
+			'host'   => 1,
+			'user'   => 1,
+			'period' => $this->settings['check_period']
+		);
 
 		return $lockout_modules;
 
@@ -124,14 +123,10 @@ class ITSEC_Brute_Force {
 	 */
 	public function itsec_logger_modules( $logger_modules ) {
 
-		if ( $this->settings['enabled'] === true ) {
-
-			$logger_modules['brute_force'] = array(
-				'type'     => 'brute_force',
-				'function' => __( 'Invalid Login Attempt', 'better-wp-security' ),
-			);
-
-		}
+		$logger_modules['brute_force'] = array(
+			'type'     => 'brute_force',
+			'function' => __( 'Invalid Login Attempt', 'better-wp-security' ),
+		);
 
 		return $logger_modules;
 
@@ -265,6 +260,46 @@ class ITSEC_Brute_Force {
 		}
 
 		return $error;
+	}
+
+	/**
+	 * Array of metaboxes for the logs screen
+	 *
+	 * @since 4.0
+	 *
+	 * @param object $displays metabox array
+	 *
+	 * @return array metabox array
+	 */
+	public function itsec_logger_displays( $displays ) {
+
+		$displays[] = array(
+			'module'   => 'brute_force',
+			'title'    => __( 'Invalid Login Attempts', 'better-wp-security' ),
+			'callback' => array( $this, 'logs_metabox_content' ),
+		);
+
+		return $displays;
+
+	}
+
+	/**
+	 * Render the settings metabox
+	 *
+	 * @since 4.0
+	 *
+	 * @return void
+	 */
+	public function logs_metabox_content() {
+
+		if ( ! class_exists( 'ITSEC_Brute_Force_Log' ) ) {
+			require( dirname( __FILE__ ) . '/class-itsec-brute-force-log.php' );
+		}
+
+		$log_display = new ITSEC_Brute_Force_Log();
+		$log_display->prepare_items();
+		$log_display->display();
+
 	}
 
 }

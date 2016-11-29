@@ -1,5 +1,5 @@
 
-<div id="poststuff">
+<div class="sucuriscan-panelstuff">
     <div class="postbox sucuriscan-border sucuriscan-table-description">
         <h3>Scanner Settings</h3>
 
@@ -55,10 +55,10 @@
             <td>Scanning algorithm</td>
             <td>%%SUCURI.ScanningInterface%%</td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <select name="sucuriscan_scan_interface">
-                        %%SUCURI.ScanningInterfaceOptions%%
+                        %%%SUCURI.ScanningInterfaceOptions%%%
                     </select>
                     <button type="submit" class="button-primary">Change</button>
                 </form>
@@ -69,10 +69,10 @@
             <td>Scanning frequency</td>
             <td>%%SUCURI.ScanningFrequency%%</td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <select name="sucuriscan_scan_frequency">
-                        %%SUCURI.ScanningFrequencyOptions%%
+                        %%%SUCURI.ScanningFrequencyOptions%%%
                     </select>
                     <button type="submit" class="button-primary">Change</button>
                 </form>
@@ -83,46 +83,10 @@
             <td>Main <abbr title="File System Scanner">FS Scanner</abbr></td>
             <td>%%SUCURI.FsScannerStatus%%</td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <input type="hidden" name="sucuriscan_fs_scanner" value="%%SUCURI.FsScannerSwitchValue%%" />
                     <button type="submit" class="button-primary %%SUCURI.FsScannerSwitchCssClass%%">%%SUCURI.FsScannerSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr>
-            <td>FS Scanner, Modified files</td>
-            <td>%%SUCURI.ScanModfilesStatus%%</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_scan_modfiles" value="%%SUCURI.ScanModfilesSwitchValue%%" />
-                    <button type="submit" class="button-primary %%SUCURI.ScanModfilesSwitchCssClass%%">%%SUCURI.ScanModfilesSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr class="alternate">
-            <td>FS Scanner, Core integrity checks</td>
-            <td>%%SUCURI.ScanChecksumsStatus%%</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_scan_checksums" value="%%SUCURI.ScanChecksumsSwitchValue%%" />
-                    <button type="submit" class="button-primary %%SUCURI.ScanChecksumsSwitchCssClass%%">%%SUCURI.ScanChecksumsSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr>
-            <td>FS Scanner, Ignore scanning</td>
-            <td>%%SUCURI.IgnoreScanningStatus%%</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_ignore_scanning" value="%%SUCURI.IgnoreScanningSwitchValue%%" />
-                    <button type="submit" class="button-primary %%SUCURI.IgnoreScanningSwitchCssClass%%">%%SUCURI.IgnoreScanningSwitchText%%</button>
                 </form>
             </td>
         </tr>
@@ -131,70 +95,10 @@
             <td>FS Scanner, Error log files</td>
             <td>%%SUCURI.ScanErrorlogsStatus%%</td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <input type="hidden" name="sucuriscan_scan_errorlogs" value="%%SUCURI.ScanErrorlogsSwitchValue%%" />
                     <button type="submit" class="button-primary %%SUCURI.ScanErrorlogsSwitchCssClass%%">%%SUCURI.ScanErrorlogsSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr>
-            <td>SiteCheck scanner</td>
-            <td>%%SUCURI.SiteCheckScannerStatus%%</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_sitecheck_scanner" value="%%SUCURI.SiteCheckScannerSwitchValue%%" />
-                    <button type="submit" class="button-primary %%SUCURI.SiteCheckScannerSwitchCssClass%%">%%SUCURI.SiteCheckScannerSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr class="alternate">
-            <td>SiteCheck counter</td>
-            <td>%%SUCURI.SiteCheckCounter%% scans so far</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Scanner%%" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_malware_scan" value="1" />
-                    <button type="submit" class="button-primary">Force scan</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr>
-            <td>Analyze error logs</td>
-            <td>%%SUCURI.ParseErrorLogsStatus%%</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_parse_errorlogs" value="%%SUCURI.ParseErrorLogsSwitchValue%%" />
-                    <button type="submit" class="button-primary %%SUCURI.ParseErrorLogsSwitchCssClass%%">%%SUCURI.ParseErrorLogsSwitchText%%</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr class="alternate">
-            <td>Error logs limit</td>
-            <td>Analyze last %%SUCURI.ErrorLogsLimit%% logs</td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="text" name="sucuriscan_errorlogs_limit" placeholder="Number of lines to analyze" class="input-text" />
-                    <button type="submit" class="button-primary">Change</button>
-                </form>
-            </td>
-        </tr>
-
-        <tr>
-            <td>Reset core integrity logs</td>
-            <td><span class="sucuriscan-monospace">%%SUCURI.IntegrityLogLife%% of data</span></td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_reset_logfile" value="integrity" />
-                    <button type="submit" class="button-primary">Reset logs</button>
                 </form>
             </td>
         </tr>
@@ -203,7 +107,7 @@
             <td>Reset last login logs</td>
             <td><span class="sucuriscan-monospace">%%SUCURI.LastLoginLogLife%% of data</span></td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <input type="hidden" name="sucuriscan_reset_logfile" value="lastlogins" />
                     <button type="submit" class="button-primary">Reset logs</button>
@@ -215,7 +119,7 @@
             <td>Reset failed login logs</td>
             <td><span class="sucuriscan-monospace">%%SUCURI.FailedLoginLogLife%% of data</span></td>
             <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
+                <form action="%%SUCURI.URL.Settings%%#scanner" method="post">
                     <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
                     <input type="hidden" name="sucuriscan_reset_logfile" value="failedlogins" />
                     <button type="submit" class="button-primary">Reset logs</button>
@@ -223,17 +127,19 @@
             </td>
         </tr>
 
-        <tr class="alternate">
-            <td>Reset sitecheck logs</td>
-            <td><span class="sucuriscan-monospace">%%SUCURI.SiteCheckLogLife%% of data</span></td>
-            <td class="td-with-button">
-                <form action="%%SUCURI.URL.Settings%%#settings-scanner" method="post">
-                    <input type="hidden" name="sucuriscan_page_nonce" value="%%SUCURI.PageNonce%%" />
-                    <input type="hidden" name="sucuriscan_reset_logfile" value="sitecheck" />
-                    <button type="submit" class="button-primary">Reset logs</button>
-                </form>
-            </td>
-        </tr>
-
     </tbody>
 </table>
+
+<div class="sucuriscan-panelstuff sucuriscan-general-scanner">
+    %%%SUCURI.Settings.CoreFilesStatus%%%
+
+    %%%SUCURI.Settings.CoreFilesLanguage%%%
+
+    %%%SUCURI.Settings.CoreFilesCache%%%
+
+    %%%SUCURI.Settings.SiteCheckStatus%%%
+
+    %%%SUCURI.Settings.SiteCheckCache%%%
+
+    %%%SUCURI.Settings.SiteCheckTimeout%%%
+</div>

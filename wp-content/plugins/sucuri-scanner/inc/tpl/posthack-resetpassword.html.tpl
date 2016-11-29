@@ -1,5 +1,5 @@
 
-<div id="poststuff" class="sucuriscan-reset-users-password">
+<div class="sucuriscan-panelstuff sucuriscan-reset-users-password">
     <div class="postbox">
         <div class="inside">
             <form method="post">
@@ -36,12 +36,12 @@
                     </thead>
 
                     <tbody>
-                        %%SUCURI.ResetPassword.UserList%%
+                        %%%SUCURI.ResetPassword.UserList%%%
 
                         <tr class="sucuriscan-%%SUCURI.ResetPassword.PaginationVisibility%%">
                             <td colspan="4">
                                 <ul class="sucuriscan-pagination">
-                                    %%SUCURI.ResetPassword.PaginationLinks%%
+                                    %%%SUCURI.ResetPassword.PaginationLinks%%%
                                 </ul>
                             </td>
                         </tr>
