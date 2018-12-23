@@ -92,14 +92,13 @@ class Extension_FragmentCache_Plugin_Admin {
 
 
 	public function w3tc_admin_menu( $menu ) {
-		$menu = array_merge( $menu, array(
-				'w3tc_fragmentcache' => array(
-					'page_title' => __( 'Fragment Cache', 'w3-total-cache' ),
-					'menu_text' => '<span class="w3tc_menu_item_pro">' .
-					__( 'Fragment Cache', 'w3-total-cache' ) . '</span>',
-					'visible_always' => false
-				)
-			) );
+		$menu['w3tc_fragmentcache'] = array(
+			'page_title' => __( 'Fragment Cache', 'w3-total-cache' ),
+			'menu_text' => '<span class="w3tc_menu_item_pro">' .
+			__( 'Fragment Cache', 'w3-total-cache' ) . '</span>',
+			'visible_always' => false,
+			'order' => 1100
+		);
 
 		return $menu;
 	}
@@ -148,16 +147,16 @@ class Extension_FragmentCache_Plugin_Admin {
 		if ( $c->get_string( array( 'fragmentcache', 'engine' ) ) == 'memcached' ) {
 			$summary['memcached_servers']['fragmentcache'] = array(
 				'servers' => $c->get_array( array( 'fragmentcache', 'memcached.servers' ) ),
-				'username' => $c->get_boolean( array( 'fragmentcache', 'memcached.username' ) ),
-				'password' => $c->get_boolean( array( 'fragmentcache', 'memcached.password' ) ),
+				'username' => $c->get_string( array( 'fragmentcache', 'memcached.username' ) ),
+				'password' => $c->get_string( array( 'fragmentcache', 'memcached.password' ) ),
 				'name' => __( 'Fragment Cache', 'w3-total-cache' )
 			);
 		} elseif ( $c->get_string( array( 'fragmentcache', 'engine' ) ) == 'redis' ) {
 			$summary['redis_servers']['fragmentcache'] = array(
 				'servers' => $c->get_array( array( 'fragmentcache', 'redis.servers' ) ),
 				'username' => $c->get_boolean( array( 'fragmentcache', 'redis.username' ) ),
-				'dbid' => $c->get_boolean( array( 'fragmentcache', 'redis.dbid' ) ),
-				'password' => $c->get_boolean( array( 'fragmentcache', 'redis.password' ) ),
+				'dbid' => $c->get_integer( array( 'fragmentcache', 'redis.dbid' ) ),
+				'password' => $c->get_string( array( 'fragmentcache', 'redis.password' ) ),
 				'name' => __( 'Fragment Cache', 'w3-total-cache' )
 			);
 		}

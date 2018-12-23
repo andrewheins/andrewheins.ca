@@ -46,6 +46,10 @@ class Extensions_Plugin_Admin {
 				'w3tc_extensions' ),
 			10, 2 );
 		add_filter( 'w3tc_extensions', array(
+				'\W3TC\Extension_Swarmify_Plugin_Admin',
+				'w3tc_extensions' ),
+			10, 2 );
+		add_filter( 'w3tc_extensions', array(
 				'\W3TC\Extension_WordPressSeo_Plugin_Admin',
 				'w3tc_extensions' ),
 			10, 2 );
@@ -95,14 +99,14 @@ class Extensions_Plugin_Admin {
 	 * @return array
 	 */
 	public function w3tc_admin_menu( $menu ) {
-		$menu_item = array(
-			'w3tc_extensions' => array(
-				'page_title' => __( 'Extensions', 'w3-total-cache' ),
-				'menu_text' => __( 'Extensions', 'w3-total-cache' ),
-				'visible_always' => false
-			)
+		$menu['w3tc_extensions'] = array(
+			'page_title' => __( 'Extensions', 'w3-total-cache' ),
+			'menu_text' => __( 'Extensions', 'w3-total-cache' ),
+			'visible_always' => false,
+			'order' => 1900
 		);
-		return array_merge( $menu, $menu_item );
+
+		return $menu;
 	}
 
 	/**
@@ -124,7 +128,7 @@ class Extensions_Plugin_Admin {
 		$s = get_option( 'w3tc_extensions_hooks' );
 		$hooks = @json_decode( $s, true );
 		if ( !isset( $hooks['next_check_date'] ) ||
-			$hooks['next_check_date'] < time() || true ) {
+			$hooks['next_check_date'] < time() ) {
 			$hooks = array(
 				'actions' => array(),
 				'filters' => array(),

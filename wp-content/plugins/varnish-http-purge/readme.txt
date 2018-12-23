@@ -1,43 +1,79 @@
-=== Varnish HTTP Purge ===
-Contributors: Ipstenu, mikeschroder, techpriester
-Tags: varnish, purge, cache
-Requires at least: 4.0
-Tested up to: 4.7
-Stable tag: 4.0.2
+= Proxy Cache Purge =
+Contributors: Ipstenu, mikeschroder, techpriester, danielbachhuber
+Tags: proxy, purge, cache, varnish, nginx
+Requires at least: 4.7
+Tested up to: 5.0
+Stable tag: 4.7.3
+Requires PHP: 5.6
 
-Automatically purge Varnish Cache when content on your site is modified.
+Automatically empty proxy cached content when your site is modified.
 
 == Description ==
-Varnish HTTP Purge sends a PURGE request to the URL of a page or post every time it it modified. This occurs when editing, publishing, commenting or deleting an item, and when changing themes.
 
-<a href="https://www.varnish-cache.org/">Varnish</a> is a web application accelerator also known as a caching HTTP reverse proxy. You install it in front of any server that speaks HTTP and configure it to cache the contents. This plugin <em>does not</em> install Varnish for you, nor does it configure Varnish for WordPress. It's expected you already did that on your own.
+<strong>This plugin <em>does not</em> install nor configure a cache proxy. It acts as an interface with such services.</strong>
 
-Not all pages are purged every time, depending on your Varnish configuration. When a post, page, or custom post type is edited, or a new comment is added, <em>only</em> the following pages will purge:
+One common method of caching content for websites is via the use of reverse proxy caching. Common examples of this are <a href="https://www.varnish-cache.org/">Varnish</a> and <a href="https://www.nginx.com/">Nginx</a>. These systems allow a website to update content and have the visitor's experience cached without the need for complex plugins storing the files locally and using up a user's disk space.
+
+A reverse proxy cache is installed in front of a server and reviews requests. If the page being requested is already cached, it delivers the cached content. Otherwise it generates the page and the cache on demand.
+
+The Proxy Cache Purge plugin sends a request to delete (aka flush) the cached data of a page or post every time it it modified. This happens when updating, publishing, commenting on, or deleting an post, and when changing themes.
+
+= How It Works =
+
+When content on a site is updated by WordPress, the plugin reaches out to the proxy cache service with the URL of the page, requesting the cache be deleted.
+
+Not all page are deleted from the cache on every change. For example, when a post, page, or custom post type is edited, or a new comment is added, <em>only</em> the following pages will purge:
 
 * The front page
 * The post/page edited
-* Any categories or tags associated with the page
+* Any categories, tags, and/or custom taxonomies associated with the page
+* Related feeds
+* Associated JSON API pages
 
-In addition, your entire cache will be purged on the following actions:
+In addition, your <em>entire</em> cache will be deleted on the following actions:
 
 * Changing themes
-* Press the 'Purge Varnish Cache' button on the dashboard
-* Press the 'Purge Varnish' button on the toolbar
+* Pressing the <strong>Empty Cache</strong> button on the toolbar
 
 Plugins can hook into the purge actions as well, to filter their own events to trigger a purge.
 
-And if you're into WP-CLI, you can use that too: `wp varnish purge`
+On a multisite network using subfolders, only <strong>network admins</strong> can purge the main site.
 
-Please note: On a multisite network using subfolders, only <strong>network admins</strong> can purge the main site.
+= Development Mode =
+
+If you're working on a site and need to turn off caching in one of two ways:
+
+1. Add `define( 'VHP_DEVMODE', true );` to your `wp-config.php` file
+2. Go to Proxy Cache -> Settings and enable debug mode for 24 hours at a time
+
+That will break cache on page loads. It is _not_ recommended for production!
+
+= WP CLI =
+
+* `wp varnish purge` - Flush the entire cache
+* `wp varnish debug [<url>]` - Help for debugging how well your cache is (or isn't) working
+* `wp varnish devmode [<activate|deactivate|toggle>` - Change development mode state
+
+= Privacy Policy =
+
+By default, no data is tracked. If you use the site scanner/debugging tool, your domain and IP address will access [a remote service hosted on DreamObjects](https://varnish-http-purge.objects-us-east-1.dream.io/readme.txt). No personally identifying transaction data is recorded or stored, only overall usage. IP addresses of the website making the request may be recorded by the service, but there is no way to access them and use it to correspond with individuals or processes.
+
+Use of this service is required for the cache checking in order to provide up to date compatibility checks on plugins and themes that may conflict with running a server based cache without needing to update the plugin every day.
+
+<em>No visitor information from your site is tracked.</em>
 
 == Installation ==
-No WordPress configuration needed.
 
-When used on Multisite, the plugin is Network Activatable Only.
+No special instructions apply.
+
+If you have a 3rd party proxy service (such as Sucuri or Cloudflare) you will need to add an IP address on the <em>Proxy Cache -> Settings</em> page. Alternatively you can add a define to your `wp-config.php` file: `define('VHP_VARNISH_IP','123.45.67.89');`
+
+When using Nginx based proxies, your IP will likely be `localhost`.
 
 = Requirements =
+
 * Pretty Permalinks enabled
-* Varnish 3.x or higher
+* A server based proxy cache service (such as Varnish or Nginx)
 
 == Frequently Asked Questions ==
 
@@ -45,197 +81,147 @@ When used on Multisite, the plugin is Network Activatable Only.
 
 If you have code patches, [pull requests are welcome](https://github.com/Ipstenu/varnish-http-purge).
 
-= How can I tell everything's working? =
+= Is this plugin caching my data? =
 
-This can be difficult, since it's a silent plugin. That is you turn it on and walk away. The easiest way to tell would be view a page as a non-logged-in user. I recommend a private browsing window. Then, as a logged in user in another window, edit an existing post (make a small change). Refresh the view in your private window. If the change is there, then everything's working!
+No. This plugin tells your cache system when content is updated, and to delete the cached data at that time.
 
-= Does every WordPress plugin and theme work with Varnish? =
+= Why doesn't the plugin automatically delete the whole cache? =
 
-No. Some of them have behavior that causes Varnish not to cache. While debugging that is outside the scope of this plugin, there is an "Is Varnish Working?" tool (see WP Admin -> Tools -> Varnish Status) that tries to detect most of the common issues and direct you to resolutions.
+Speed and stability. Emptying too much of a cache on every change can slow a server down. This plugin does it's best to determine what needs to be deleted and when, while providing hooks for developers to use as necessary.
 
-= How can I debug my site? =
+= Can I delete the entire cache? =
 
-From your WordPress Dashboard, go to Tools -> Varnish Status. There a page will auto-scan your main plugin page and report back any issues found. This includes any known problematic plugins.
+Yes. Click the 'Empty Cache' button on the "Right Now" Dashboard (see the screenshot if you can't find it). There's also an "Empty Cache" button on the admin toolbar.
+
+If you don't see a button, then your account doesn't have the appropriate permissions. Only administrators can empty the entire cache. In the case of a subfolder multisite network, only the <em>network</em> admins can empty the cache for the primary site.
+
+= Will the plugin delete my cache when I edit files on the server? =
+
+No. WordPress can't detect those file changes so it can't tell your cache what to do. You will need to use the Empty Cache buttons when you're done editing your code.
+
+= Does every WordPress plugin and theme work with a proxy cache? =
+
+No. Some of them have behavior that causes them not to cache, either by accident or design.
+
+= I'm a developer, can I tell your cache to empty in my plugin/theme? =
+
+Yes. [Full documentation can be found on Custom Filters in the wiki](https://github.com/Ipstenu/varnish-http-purge/wiki/Custom-Filters).
+
+= Can I turn off caching? =
+
+Kind of. You can use development mode to have WordPress tell your proxy service not to serve cached content, but the content will still be cached by the service.
+
+There are three ways to do this:
+
+1. Chose 'Pause Cache (24hrs)' from the Cache dropdown menu in your toolbar
+2. Go to Proxy Cache -> Settings and enable development mode
+3. Add `define( 'VHP_DEVMODE', true );` to your `wp-config.php` file
+
+The first two options will enable development mode for 24 hours. If you're working on long term development, you can should use the define.
+
+It is _not_ recommended you use development mode on production sites for extended periods of time, as it _will_ will slow your site down and lose all the benefits of caching in the first place.
+
+= Why don't I have access to development mode? =
+
+Due to the damage this can cause a site, access is limited to admins only. In the case of a multisite network, only <em>Network Admins</em> can disable caching and they must do so via `wp-config.php` for security.
+
+= Why do I still see cached content in development mode? =
+
+While development mode is on, your server will continue to cache content but the plugin will tell WordPress not to use the cached content. That means files that exist outside of WordPress (like CSS or images) _may_ serve cached content. The plugin does its best to add a No Cache parameter to javascript and CSS, however if a theme or plugin _doesn't_ use proper WordPress enqueues, then their cached content will be shown.
+
+= How can I tell if everything's caching? =
+
+From your WordPress Dashboard, go to <em>Proxy Cache > Check Caching</em>. There a page will auto-scan your front page and report back any issues found. This includes any known problematic plugins. You can use it to scan any URL on your domain.
+
+= Why is nothing caching when I use PageSpeed? =
+
+PageSpeed likes to put in Caching headers to say <em>not</em> to cache. To fix this, you need to put this in your `.htaccess` section for PageSpeed: `ModPagespeedModifyCachingHeaders off`
+
+If you're using nginx, it's `pagespeed ModifyCachingHeaders off;`
+
+= Why aren't my changes showing when I use CloudFlare or another proxy? =
+
+When you use CloudFlare or any other similar service, you've put a proxy in front of the server's proxy. In general this isn't a bad thing, though it can introduce some network latency (that means your site may run slower because it has to go through multiple layers to get to the content). The problem arises when WordPress tries to send the purge request to your domain name and, with a proxy, that means the proxy service and not your website.
+
+On single-site, you can edit this via the <em>Proxy Cache > Check Caching</em> page. On Multisite, you'll need to add the following to your wp-config.php file: `define('VHP_VARNISH_IP','123.45.67.89');`
+
+Replace `123.45.67.89` with the IP of your <em>Proxy Cache Server</em> (_not_ CloudFlare). **DO NOT** put http in this define. If you're on nginx, you'll want to use `localhost` instead of an IP address.
+
+If you want to use WP-CLI, you can set an option in the database. This will not take precedence over the define, and exists for people who want to use automation tools: `wp option update vhp_varnish_ip 123.45.67.890`
+
+= Why do I get a 503 or 504 error on every post update? =
+
+Your IP address is incorrect. Check the IP of your server and then the setting for your proxy cache IP. If they're _not_ the same, that's likely why.
+
+= How do I find the right IP address? =
+
+Your proxy IP must be one of the IPs that the service is listening on. If you use multiple IPs, or if you've customized your ACLs, you'll need to pick on that doesn't conflict with your other settings.
+
+For example, if you have a Varnish based cache and it's listening on a public and private IP, you'll want to pick the private. On the other hand, if you told Varnish to listen on 0.0.0.0 (i.e. "listen on every interface you can") you would need to check what IP you set your purge ACL to allow (commonly 127.0.0.1 aka localhost), and use that (i.e. 127.0.0.1).
+
+If your web host set up your service, check their documentation.
+
+= What if I have multiple proxy cache IPs? =
+
+Multiple IPs are not supported at this time.
 
 = What version of Varnish is supported? =
 
 This was built and tested on Varnish 3.x. While it is reported to work on 2.x and 4.x, it is only supported on v3 at this time.
 
-= Why doesn't every page flush when I make a new post? =
+= Does this work with Nginx caching? =
 
-The only pages that should purge are the post's page, the front page, categories, and tags. The reason why is a little philosophical.
+It can, if you've configured Nginx caching to respect the curl PURGE request. If this doesn't work, I recommend setting your Varnish IP to `localhost` as Nginx requires a service control installed for the IP address to work.
 
-When building out this plugin, there were a couple pathways on how best to handle purging caches and they boiled down to two: Decisions (the plugin purges what it purges when it purges) and Options (you decide what to purge, when and why). It's entirely possible to make this plugin purge everything, every time a 'trigger' happens, have it purge some things, or have it be so you can pick that purges.
+= What should my cache rules be? =
 
-In the interests of design, we decided that the KISS principle was key. Since you can configure your Varnish to always purge all pages recursively (i.e. purging http://example.com/ would purge all pages below it), if that's a requirement, you can set it yourself. There are also other Varnish plugins that allow for more granular control (including W3 Total Cache), however this plugin will not be gaining a whole bunch of options to handle that.
+This is a question beyond the support of plugin. I do not have the resources available to offer any configuration help. Here are some basic gotchas to be aware of:
 
-= Why doesn't my cache purge when I edit my theme? =
+* To empty any cached data, the service will need to respect the PURGE command
+* Not all cache services set up PURGE by default
+* When flushing the whole cache, the plugin sends a PURGE command of <code>/.*</code> and sets the `X-Purge-Method` header to `regex`
+* Nginx expects the IP address to be 'localhost'
 
-Because the plugin only purges your <em>content</em> when you edit it. That means if you edit a page/post, or someone leaves a comment, it'll change. Otherwise, you have to purge the whole cache. The plugin will do this for you if you activate a new theme, but not when you edit your current theme's files.
+= How can I see what the plugin is sending to the cache service? =
 
-If you use Jetpack's CSS editor, it will purge the whole cache for your site on save.
+Yes _IF_ the service has an interface. Sadly Nginx does not. [Detailed directions can be found on the debugging section on GitHub](https://github.com/Ipstenu/varnish-http-purge/wiki#debugging). Bear in mind, these interfaces tend to be command-line only.
 
-= How do I manually purge the whole cache? =
+= Don't you work at DreamHost? Is this Official or DreamHost only? =
 
-Click the 'Purge Varnish Cache' button on the "Right Now" Dashboard (see the screenshot if you can't find it).
+* Yes, I do work for DreamHost
+* No, this plugin is not DreamHost Only
 
-There's also a "Purge Varnish" button on the admin toolbar.
-
-= I don't see a button! =
-
-If you're on a Multisite Network and you're on the primary site in the network, only the <em>network</em> admins can purge that site
-
-On a subfolder network if you flush the site at `example.com`, then everything under that (like `example.com/site1` and `example.com/siten` and everything else) would also get flushed. That means that a purge on the main site purges the entire network.
-
-In order to mitigate the destructive nature of that power, only the network admins can purge everything on the main site of a subfolder network.
-
-= Why is nothing caching when I use PageSpeed? =
-
-PageSpeed likes to put in Caching headers to say <em>not</em> to cache. To fix this, you need to put this in your .htaccess section for PageSpeed: `ModPagespeedModifyCachingHeaders off`
-
-If you're using nginx, it's `pagespeed ModifyCachingHeaders off;`
-
-= Can I use this with a proxy service like CloudFlare? =
-
-Yes, but you'll need to make some additional changes (see "Why aren't my changes showing when I use CloudFlare or another proxy?" below).
-
-= Why aren't my changes showing when I use CloudFlare or another proxy? =
-
-When you use CloudFlare or any other similar service, you've got a proxy in front of the Varnish proxy. In general this isn't a bad thing. The problem arises when the DNS shenanigans send the purge request to your domain name. When you've got an additional proxy like CloudFlare, you don't want the request to go to the proxy, you want it to go to Varnish server.
-
-On single-site, you can edit this via the Tools -> Varnish Status page. On Multisite, you'll need to add the following to your wp-config.php file:
-
-`define('VHP_VARNISH_IP','123.45.67.89');`
-
-Replace "123.45.67.89" with the IP of your <em>Varnish Server</em> (not CloudFlare, Varnish). <em>DO NOT</em> put in http in this define.
-
-If you want to use WP-CLI, you can set an option in the database. This will NOT take precedence over the define, it's just there to let hosts who are using something like wp-cli do this for you in an automated fashion:
-
-`wp option add vhp_varnish_ip 123.45.67.89`
-
-and
-
-`wp option update vhp_varnish_ip 123.45.67.890`
-
-= How do I find my Varnish IP? =
-
-Your Varnish IP must be one of the IPs that Varnish is listening on. If you use multiple IPs, or if you've customized your ACLs, you'll need to pick on that doesn't conflict with your other settings. For example, if you have Varnish listening on a public and private IP, you'll want to pick the private. On the other hand, if you told Varnish to listen on 0.0.0.0 (i.e. "listen on every interface you can") you would need to check what IP you set your purge ACL to allow (commonly 127.0.0.1 aka localhost), and use that (i.e. 127.0.0.1).
-
-If your webhost set up Varnish for you, you may need to ask them for the specifics if they don't have it documented. I've listed the ones I know about here, however you should still check with them if you're not sure.
-
-<ul>
-    <li><strong>DreamHost</strong> - If you're using DreamPress and Cloudflare, go into the Panel and click on the DNS settings for the domain. The entry for <em>resolve-to.domain</em> is your varnish server: `resolve-to.www A 208.97.157.172` -- If you're <em>NOT</em> using Cloudflare, you don't need it, but it's just your normal IP.</li>
-</ul>
-
-= What if I have multiple varnish IPs? =
-
-Multiple IPs are not supported at this time.
-
-I have a major issue with writing code I don't use, which means that since I'm only using one IP right now, I don't want to be on the ball for supporting multiple IPs. I don't even have a place to test it, which is just insane to attempt to code if you think about it. Yes, I could accept pull requests, but that means everyone's at some other person's discretion. So no, I won't be doing that at this time.
-
-= Why don't my gzip'd pages flush? =
-
-Make sure your Varnish VCL is configured correctly to purge all the right pages. This is normally an issue with Varnish 2, which is not supported by this plugin.
-
-= Why isn't the whole cache purge working? =
-
-The plugin sends a PURGE command of <code>/.*</code> and `X-Purge-Method` in the header with a value of regex. If your Varnish server doesn't doesn't understand the wildcard, you can configure it to check for the header.
-
-= How can I debug? =
-
-If `WP_DEBUG` is on and you're not seeing any errors, you'll have to jump into the command line.
-
-To see every request made to varnish, use this:
-`varnishncsa -F "%m %U"`
-
-If you want to grab the last purge requests, it's this:
-`varnishlog -d -c -m RxRequest:PURGE`
-
-And this will show you if the WP button was used:
-`varnishlog -d -c -m RxURL:.*vhp_flush_all.*`
-
-In general, I leave the first command up and test the plugin.
-
-A full Varnish flush looks like this:
-`PURGE /.*`
-
-And a new-post (or edited post) would look like this:
-
-<pre>
-PURGE /category/uncategorized/
-PURGE /author/ipstenu/
-PURGE /author/ipstenu/feed/
-PURGE /2015/08/test-post/
-PURGE /feed/rdf/
-PURGE /feed/rss/
-PURGE /feed/
-PURGE /feed/atom/
-PURGE /comments/feed/
-PURGE /2015/08/test-post/feed/
-PURGE /
-</pre>
-
-It's just a matter of poking at things from then on.
-
-= How do I configure my VCL? =
-
-This is a question beyond the support of plugin. I don't offer any Varnish Config help due to resources. I will say this, you absolutely must have PURGE set up in your VCL. This is still supported in Varnish v3, though may not be set up by default. Also, here are some links to other people who use this plugin and have made public their VCLs:
-
-* <a href="https://github.com/dreamhost/varnish-vcl-collection">DreamHost's Varnish VCL Collection</a>
-
-All of these VCLs work with this plugin.
-
-= Can I filter things to add special URLs? =
-
-Yes! 
-
-* `vhp_home_url` - Change the home URL (default is `home_url()`)
-* `vhp_purge_urls` - Add additional URLs to what will be purged
-* `varnish_http_purge_events` - Add a specific event to trigger a page purge
-* `varnish_http_purge_events_full` - Add a specific event to trigger a full site purge
-* `varnish_http_purge_schema` - Allows you to change the schema (default is http)
-
-I strongly urge you to use the last one with caution. If you trigger a full site purge too often, you'll obviate the usefulness of caching!
-
-= I added in an event to purge on and it's not working =
-
-If you're using `varnish_http_purge_events` then you have to make sure your event spits out a post ID.
-
-If you don't have a post ID and you still need this, add it to *both* `varnish_http_purge_events_full` and `varnish_http_purge_events` - but please use this with caution, otherwise you'll be purging everything all the time, and you're a terrible person.
-
-= Hey, don't you work at DreamHost? Is this Official or DreamHost only? =
-
-Yes I do, and yes and no. This plugin is installed by default for _all_ DreamPress installs on DreamHost, and I maintain it for DreamHost, but it was not originally an official DH plugin which means I will continue to support all users to the best of my ability.
+This plugin is installed by default for _all_ DreamPress installs on DreamHost, and I maintain it for DreamHost, but it was not originally an official DreamHost plugin which means I will continue to support all users to the best of my ability.
 
 == Changelog ==
 
-= 4.0.2 =
-* Support for WP-CLI commands and PHP > 5.5 (though please upgrade, props @robertpeake)
-* Better information regarding Cloudflare
-* Better failure on domains for scanner
-* Better IP detection
-* Break apart settings for faster saving
+= 4.7.3 =
+* December 2018
+* Bugfix for Jetpack (Props @jherve)
 
-= 4.0.1 =
-* Fix typo (on -> one)
-* Correct permissions on Multisite (props @phh - resolves #27 #28)
-* Correct weird merge error (props @phh - resolves #25 #26)
-* Fix formatting in Changelog
+= 4.7.2 =
+* October 2018
+* Fix regression with IP function name
+* Restore "Right Now" activity box _only_ for people who use WP.com toolbar
 
-= 4.0 =
-* Added Varnish Status Page - Tools -> Varnish Status (includes basic scanning etc)
-* Allow filter for `home_url()`
-* Update readme with list of filters.
-* Added wp-cli commands to flush specific URLs and wildcards
-* Requires wp-cli 0.25+ to work [3315](https://github.com/wp-cli/wp-cli/issues/3315) for WP 4.6+
-* Update `purgePost()` to validate page_for_posts ([Props JeremyClarke](https://github.com/Ipstenu/varnish-http-purge/pull/20))
-* Add check for AMP ([Props JeremyClarke](https://wordpress.org/support/topic/varnish-http-purge-doesnt-update-amp-urls-on-post-update/))
-* Purge 'default' AMP URL as well
-* Cleanup on Uninstall
+= 4.7.1 =
+* October 2018
+* Documentation: Cleaning up language and spelling
+
+= 4.7.0 =
+* October 2018
+* WP-CLI: documentation
+* Bugfix: Nginx compatibility
+* Bugfix: Only enqueue CSS on front0end if the admin bar is used (props @mathieuhays)
+* Feature: Rebranding
+* Deprecation: "Right Now" button (not needed anymore)
 
 == Screenshots ==
 
 1. Purge button on Right Now (Dashboard Admin)
-2. Purge button on Toolbar
-3. Scanner results
-4. Change Varnish IP address
+2. Toolbar menu (with cache enabled)
+3. Toolbar menu (with cache disabled)
+4. Scanner results
+5. Change Proxy IP address
+6. Activate Dev Mode
+7. Dev Mode Warning (24 hour notice)

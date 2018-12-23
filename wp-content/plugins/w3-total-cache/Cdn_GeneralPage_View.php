@@ -11,7 +11,7 @@ Util_Ui::config_overloading_button( array(
 ?>
 <p><?php _e( 'Host static files with your content delivery network provider to reduce page load time.', 'w3-total-cache' ); ?>
 <?php if ( !$cdn_enabled ): ?>
-<?php printf( __( 'If you do not have a <acronym title="Content Delivery Network">CDN</acronym> provider try MaxCDN. <a href="%s" target="_blank">Sign up and save 25&#37;</a>.', 'w3-total-cache' ), wp_nonce_url( Util_Ui::admin_url( 'admin.php?page=w3tc_dashboard&w3tc_cdn_maxcdn_signup' ), 'w3tc' ) ); ?>
+<?php printf( __( ' If you do not have a <acronym title="Content Delivery Network">CDN</acronym> provider try MaxCDN. <a href="%s" target="_blank">Sign up and save 25&#37;</a>.', 'w3-total-cache' ), wp_nonce_url( Util_Ui::admin_url( 'admin.php?page=w3tc_dashboard&w3tc_cdn_maxcdn_signup' ), 'w3tc' ) ); ?>
 <?php endif ?>
 </p>
 <table class="form-table">
@@ -30,12 +30,14 @@ Util_Ui::config_item( array(
 		'selectbox_values' => $engine_values,
 		'selectbox_optgroups' => $engine_optgroups,
 		'description' => __( 'Select the <acronym title="Content Delivery Network">CDN</acronym> type you wish to use.',
-			'w3-total-cache' ) . $cdn_engine_extra_description
+			'w3-total-cache' )
 	) );
 ?>
 </table>
 
 <?php
+do_action( 'w3tc_settings_general_boxarea_cdn_footer' );
+
 Util_Ui::button_config_save( 'general_cdn',
 	'<input id="cdn_purge" type="button" value="'.
 	__( 'Empty cache', 'w3-total-cache' ) . '" ' .

@@ -1,73 +1,33 @@
 jQuery( document ).ready( function ( $ ) {
-	/**
-	 * Show the file tree in the settings.
-	 */
-	$( '.jquery_file_tree' ).fileTree(
-		{
-			root         : itsec_file_change_settings.ABSPATH,
-			script       : ajaxurl,
-			expandSpeed  : -1,
-			collapseSpeed: -1,
-			multiFolder  : false
 
-		}, function ( file ) {
+	itsecSettingsPage.events.on( 'modulesReloaded', initializeFileTrees );
 
-			$( '#itsec-file-change-file_list' ).val( file.substring( itsec_file_change_settings.ABSPATH.length ) + "\n" + $( '#itsec-file-change-file_list' ).val() );
+	function initializeFileTrees() {
 
-		}, function ( directory ) {
+		/**
+		 * Show the file tree in the settings.
+		 */
+		$( '.jquery_file_tree' ).fileTree(
+			{
+				root         : itsec_file_change_settings.ABSPATH,
+				script       : ajaxurl,
+				expandSpeed  : -1,
+				collapseSpeed: -1,
+				multiFolder  : false
 
-			$( '#itsec-file-change-file_list' ).val( directory.substring( itsec_file_change_settings.ABSPATH.length ) + "\n" + $( '#itsec-file-change-file_list' ).val() );
+			}, function ( file ) {
 
-		}
-	);
+				$( '#itsec-file-change-file_list' ).val( file.substring( itsec_file_change_settings.ABSPATH.length ) + "\n" + $( '#itsec-file-change-file_list' ).val() );
 
-	/**
-	 * Performs a one-time file scan
-	 */
-	$( '#itsec-file-change-one_time_check' ).click(function( e ) {
-		e.preventDefault();
-		
-		//let user know we're working
-		$( '#itsec-file-change-one_time_check' )
-			.removeClass( 'button-primary' )
-			.addClass( 'button-secondary' )
-			.attr( 'value', itsec_file_change_settings.scanning_button_text )
-			.prop( 'disabled', true );
-		
-		var data = {
-			'method': 'one-time-scan'
-		};
-		
-		$( '#itsec_file_change_status' ).html( '' );
-		
-		itsecSettingsPage.sendModuleAJAXRequest( 'file-change', data, function( results ) {
-			$( '#itsec_file_change_status' ).html( '' );
-			
-			if ( false === results.response ) {
-				$( '#itsec_file_change_status' ).append( '<div class="updated fade inline"><p><strong>' + itsec_file_change_settings.no_changes + '</strong></p></div>' );
-			} else if ( true === results.response ) {
-				$( '#itsec_file_change_status' ).append( '<div class="error inline"><p><strong>' + itsec_file_change_settings.found_changes + '</strong></p></div>' );
-			} else if ( -1 === results.response ) {
-				$( '#itsec_file_change_status' ).append( '<div class="error inline"><p><strong>' + itsec_file_change_settings.already_running + '</strong></p></div>' );
-			} else if ( results.errors && results.errors.length > 0 ) {
-				$.each( results.errors, function( index, error ) {
-					$( '#itsec_file_change_status' ).append( '<div class="error inline"><p><strong>' + error + '</strong></p></div>' );
-				} );
-			} else {
-				$( '#itsec_file_change_status' ).append( '<div class="error inline"><p><strong>' + itsec_file_change_settings.unknown_error + '</strong></p></div>' );
+			}, function ( directory ) {
+
+				$( '#itsec-file-change-file_list' ).val( directory.substring( itsec_file_change_settings.ABSPATH.length ) + "\n" + $( '#itsec-file-change-file_list' ).val() );
+
 			}
-			
-			$( '#itsec-file-change-one_time_check' )
-				.removeClass( 'button-secondary' )
-				.addClass( 'button-primary' )
-				.attr( 'value', itsec_file_change_settings.button_text )
-				.prop( 'disabled', false );
-		} );
-	});
+		);
+	}
 
-} );
-
-jQuery( window ).load( function () {
+	initializeFileTrees();
 
 	/**
 	 * Shows and hides the red selector icon on the file tree allowing users to select an
@@ -87,4 +47,34 @@ jQuery( window ).load( function () {
 
 	} );
 
+	itsecSettingsPage.events.on( 'modulesReloaded', initializeScan );
+
+	function initializeScan() {
+		var $button = $( '#itsec-file-change-one_time_check' );
+		var scan = window.scan = new window.ITSECFileChangeScanner( $button, {
+			classList       : 'button-secondary',
+			messageContainer: $( '#itsec_file_change_status' ),
+		} );
+
+		$button.on( 'click', function () {
+			scan.start();
+		} );
+	}
+
+	initializeScan();
+
+	$( document ).on( 'click', '#itsec-file-change-abort', function () {
+		var $this = $( this );
+
+		$this.prop( 'disabled', true );
+
+		itsecUtil.sendModuleAJAXRequest( 'file-change', { method: 'abort' }, function ( results ) {
+			var $button = $( '#itsec-file-change-one_time_check' );
+			$button.prop( 'disabled', false );
+			$button.prop( 'class', 'button-primary' );
+			$button.val( ITSECFileChangeScannerl10n.button_text );
+
+			$this.remove();
+		} );
+	} );
 } );

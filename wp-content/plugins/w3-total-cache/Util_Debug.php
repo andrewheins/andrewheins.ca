@@ -45,9 +45,18 @@ class Util_Debug {
 		$filename = $dir_path . '/' . $postfix . '/' . $module . '.log';
 		if ( !is_dir( dirname( $filename ) ) ) {
 
-			Util_File::mkdir_from( dirname( $filename ), $from_dir );
+			Util_File::mkdir_from_safe( dirname( $filename ), $from_dir );
 		}
 
 		return $filename;
+	}
+
+
+
+	static public function log( $module, $message ) {
+		$message = strtr( $message, '<>', '..' );
+		$filename = Util_Debug::log_filename( $module );
+
+		return @file_put_contents( $filename, date( 'r' ) . ' ' . $message . "\n", FILE_APPEND );
 	}
 }

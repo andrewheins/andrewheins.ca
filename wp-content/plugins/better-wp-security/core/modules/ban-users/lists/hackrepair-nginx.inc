@@ -16,7 +16,6 @@ if ($http_user_agent ~* "^checkprivacy"){return 403;}
 if ($http_user_agent ~* "^ChinaClaw"){return 403;}
 if ($http_user_agent ~* "^clshttp"){return 403;}
 if ($http_user_agent ~* "^cmsworldmap"){return 403;}
-if ($http_user_agent ~* "^comodo"){return 403;}
 if ($http_user_agent ~* "^Custo"){return 403;}
 if ($http_user_agent ~* "^Default Browser 0"){return 403;}
 if ($http_user_agent ~* "^diavol"){return 403;}
@@ -125,7 +124,6 @@ if ($http_user_agent ~* "^Xaldon WebSpider"){return 403;}
 if ($http_user_agent ~* "^Zeus"){return 403;}
 if ($http_user_agent ~* "^zmeu"){return 403;}
 if ($http_user_agent ~* "360Spider"){return 403;}
-if ($http_user_agent ~* "AhrefsBot"){return 403;}
 if ($http_user_agent ~* "CazoodleBot"){return 403;}
 if ($http_user_agent ~* "discobot"){return 403;}
 if ($http_user_agent ~* "EasouSpider"){return 403;}

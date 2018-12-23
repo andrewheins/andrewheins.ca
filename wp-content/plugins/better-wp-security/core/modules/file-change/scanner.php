@@ -1,570 +1,997 @@
 <?php
 
-final class ITSEC_File_Change_Scanner {
+require_once( ABSPATH . 'wp-admin/includes/file.php' );
+require_once( dirname( __FILE__ ) . '/class-itsec-file-change.php' );
+require_once( dirname( __FILE__ ) . '/lib/chunk-scanner.php' );
+require_once( dirname( __FILE__ ) . '/lib/hash-comparator.php' );
+require_once( dirname( __FILE__ ) . '/lib/hash-comparator-loadable.php' );
+require_once( dirname( __FILE__ ) . '/lib/hash-comparator-chain.php' );
+require_once( dirname( __FILE__ ) . '/lib/hash-comparator-managed-files.php' );
+require_once( dirname( __FILE__ ) . '/lib/hash-loading-failed-exception.php' );
+require_once( dirname( __FILE__ ) . '/lib/package.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-core.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-factory.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-plugin.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-system.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-theme.php' );
+require_once( dirname( __FILE__ ) . '/lib/package-unknown.php' );
 
-	/**
-	 * Files and directories to be excluded from the scan
-	 *
-	 * @since  4.0.0
-	 * @access private
-	 * @var array
-	 */
-	private $excludes;
+do_action( 'itsec_load_file_change_scanner' );
 
-	/**
-	 * Flag to indicate if a file change scan is in process
-	 *
-	 * @since  4.0.0
-	 * @access private
-	 * @var bool
-	 */
-	private $running;
+class ITSEC_File_Change_Scanner {
 
-	/**
-	 * The module's saved options
-	 *
-	 * @since  4.0.0
-	 * @access private
-	 * @var array
-	 */
+	const DESTROYED = 'itsec_file_change_scan_destroyed';
+
+	const C_ADMIN = 'admin';
+	const C_INCLUDES = 'includes';
+	const C_CONTENT = 'content';
+	const C_UPLOADS = 'uploads';
+	const C_THEMES = 'themes';
+	const C_PLUGINS = 'plugins';
+	const C_OTHERS = 'others';
+
+	const S_NONE = 0;
+	const S_NORMAL = 1;
+	const S_BAD_CHANGE = 2;
+	const S_UNKNOWN_FILE = 3;
+
+	const T_ADDED = 'a';
+	const T_CHANGED = 'c';
+	const T_REMOVED = 'r';
+
+	/** @var ITSEC_File_Change_Hash_Comparator */
+	private $comparator;
+
+	/** @var ITSEC_File_Change_Package_Factory */
+	private $package_factory;
+
+	/** @var ITSEC_Lib_Distributed_Storage */
+	private $storage;
+
+	/** @var array */
 	private $settings;
 
-	private static $instance = false;
+	/** @var array */
+	private $chunk_order;
 
+	/** @var ITSEC_File_Change_Chunk_Scanner */
+	private $chunk_scanner;
 
-	private function __construct() {
+	/**
+	 * ITSEC_New_File_Change_Scanner constructor.
+	 *
+	 * @param ITSEC_File_Change_Chunk_Scanner   $chunk_scanner
+	 * @param ITSEC_File_Change_Hash_Comparator $comparator
+	 * @param ITSEC_File_Change_Package_Factory $package_factory
+	 * @param ITSEC_Lib_Distributed_Storage     $storage
+	 */
+	public function __construct(
+		ITSEC_File_Change_Chunk_Scanner $chunk_scanner = null,
+		ITSEC_File_Change_Hash_Comparator $comparator = null,
+		ITSEC_File_Change_Package_Factory $package_factory = null,
+		ITSEC_Lib_Distributed_Storage $storage = null
+	) {
+		$this->chunk_scanner   = $chunk_scanner;
+		$this->comparator      = $comparator;
+		$this->package_factory = $package_factory;
+		$this->storage         = $storage;
+		$this->settings        = ITSEC_Modules::get_settings( 'file-change' );
 
-		global $itsec_globals;
-
-		$this->settings = ITSEC_Modules::get_settings( 'file-change' );
-		$this->running  = false;
-		$this->excludes = array(
-			'file_change.lock',
-			ITSEC_Modules::get_setting( 'backup', 'location' ),
-			ITSEC_Modules::get_setting( 'global', 'log_location' ),
-			'.lock',
+		$this->chunk_order = array(
+			self::C_ADMIN,
+			self::C_INCLUDES,
+			self::C_CONTENT,
+			self::C_UPLOADS,
+			self::C_THEMES,
+			self::C_PLUGINS,
+			self::C_OTHERS,
 		);
-
 	}
 
 	/**
-	 * Executes file checking
+	 * Schedule a scan to start.
 	 *
-	 * Performs the actual execution of a file scan after determining that such an execution is needed.
+	 * @param bool            $user_initiated
+	 * @param ITSEC_Scheduler $scheduler
 	 *
-	 * @since 4.0.0
-	 *
-	 * @static
-	 *
-	 * @param bool $scheduled_call [optional] true if this is an automatic check
-	 * @param bool $return_data    [optional] whether to return a data array (true) or not (false)
-	 *
-	 * @return mixed
+	 * @return bool|WP_Error
 	 */
-	public static function run_scan( $scheduled_call = true, $return_data = false ) {
-		if ( ! self::$instance ) {
-			self::$instance = new self;
+	public static function schedule_start( $user_initiated = true, $scheduler = null ) {
+
+		$scheduler = $scheduler ? $scheduler : ITSEC_Core::get_scheduler();
+
+		if ( self::is_running( $scheduler, $user_initiated ) ) {
+			return new WP_Error( 'itsec-file-change-scan-already-running', __( 'A File Change scan is currently in progress.', 'better-wp-security' ) );
 		}
 
-		return self::$instance->execute_file_check( $scheduled_call, $return_data );
-	}
-
-	public function execute_file_check( $scheduled_call = true, $return_data = false ) {
-
-		global $itsec_logger, $itsec_globals;
-
-		if ( false === $this->running ) {
-
-			$this->running = true;
-			$send_email    = true;
-
-			ITSEC_Lib::set_minimum_memory_limit( '256M' );
-
-			$itsec_files = ITSEC_Core::get_itsec_files();
-
-			if ( $itsec_files->get_file_lock( 'file_change', 300 ) ) { //make sure it isn't already running
-
-				define( 'ITSEC_DOING_FILE_CHECK', true );
-
-				//figure out what chunk we're on
-				if ( isset( $this->settings['split'] ) && true === $this->settings['split'] ) {
-
-					if ( isset( $this->settings['last_chunk'] ) && false !== $this->settings['last_chunk'] && $this->settings['last_chunk'] < 6 ) {
-
-						$chunk = $this->settings['last_chunk'] + 1;
-
-					} else {
-
-						$chunk = 0;
-
-					}
-
-				} else {
-
-					$chunk = false;
-
-				}
-
-				if ( false !== $chunk ) {
-
-					$db_field = 'itsec_local_file_list_' . $chunk;
-
-				} else {
-
-					$db_field = 'itsec_local_file_list';
-
-				}
-
-				//set base memory
-				$memory_used = @memory_get_peak_usage();
-
-				$logged_files = get_site_option( $db_field );
-
-				//if there are no old files old file list is an empty array
-				if ( false === $logged_files ) {
-
-					$send_email = false;
-
-					$logged_files = array();
-
-					if ( is_multisite() ) {
-
-						add_site_option( $db_field, $logged_files );
-
-					} else {
-
-						add_option( $db_field, $logged_files, '', 'no' );
-
-					}
-
-				}
-
-				do_action( 'itsec-file-change-start-scan' );
-				$current_files = $this->scan_files( '', $scheduled_call, $chunk ); //scan current files
-				do_action( 'itsec-file-change-end-scan' );
-
-				$files_added          = @array_diff_assoc( $current_files, $logged_files ); //files added
-				$files_removed        = @array_diff_assoc( $logged_files, $current_files ); //files deleted
-				$current_minus_added  = @array_diff_key( $current_files, $files_added ); //remove all added files from current filelist
-				$logged_minus_deleted = @array_diff_key( $logged_files, $files_removed ); //remove all deleted files from old file list
-				$files_changed        = array(); //array of changed files
-
-				do_action( 'itsec-file-change-start-hash-comparisons' );
-
-				//compare file hashes and mod dates
-				foreach ( $current_minus_added as $current_file => $current_attr ) {
-
-					if ( array_key_exists( $current_file, $logged_minus_deleted ) ) {
-
-						//if attributes differ added to changed files array
-						if (
-							(
-								(
-									isset( $current_attr['mod_date'] ) &&
-									0 != strcmp( $current_attr['mod_date'], $logged_minus_deleted[ $current_file ]['mod_date'] )
-								) ||
-								0 != strcmp( $current_attr['d'], $logged_minus_deleted[ $current_file ]['d'] )
-							) ||
-							(
-								(
-									isset( $current_attr['hash'] ) &&
-									0 != strcmp( $current_attr['hash'], $logged_minus_deleted[ $current_file ]['hash'] ) ) ||
-								0 != strcmp( $current_attr['h'], $logged_minus_deleted[ $current_file ]['h'] )
-							)
-						) {
-
-							$remote_check = apply_filters( 'itsec_process_changed_file', true, $current_file, $current_attr['h'] ); //hook to run actions on a changed file at time of discovery
-
-							if ( true === $remote_check ) { //don't list the file if it matches the WordPress.org hash
-
-								$files_changed[ $current_file ]['h'] = isset( $current_attr['hash'] ) ? $current_attr['hash'] : $current_attr['h'];
-								$files_changed[ $current_file ]['d'] = isset( $current_attr['mod_date'] ) ? $current_attr['mod_date'] : $current_attr['d'];
-
-							}
-
-						}
-
-					}
-
-				}
-
-				//get count of changes
-				$files_added_count   = sizeof( $files_added );
-				$files_deleted_count = sizeof( $files_removed );
-				$files_changed_count = sizeof( $files_changed );
-
-				if ( 0 < $files_added_count ) {
-
-					$files_added       = apply_filters( 'itsec_process_added_files', $files_added ); //hook to run actions on all files added
-					$files_added_count = sizeof( $files_added );
-
-				}
-
-				if ( 0 < $files_deleted_count ) {
-					do_action( 'itsec_process_removed_files', $files_removed ); //hook to run actions on all files removed
-				}
-
-				do_action( 'itsec-file-change-end-hash-comparisons' );
-
-				//create single array of all changes
-				$full_change_list = array(
-					'added'   => $files_added,
-					'removed' => $files_removed,
-					'changed' => $files_changed,
-				);
-
-				$this->settings['latest_changes'] = array(
-					'added' => count( $files_added ),
-					'removed' => count( $files_removed ),
-					'changed' => count( $files_changed ),
-				);
-
-				update_site_option( $db_field, $current_files );
-
-				//Cleanup variables when we're done with them
-				unset( $files_added );
-				unset( $files_removed );
-				unset( $files_changed );
-				unset( $current_files );
-
-				$this->settings['last_run']   = $itsec_globals['current_time'];
-				$this->settings['last_chunk'] = $chunk;
-
-				ITSEC_Modules::set_settings( 'file-change', $this->settings );
-
-				//get new max memory
-				$check_memory = @memory_get_peak_usage();
-				if ( $check_memory > $memory_used ) {
-					$memory_used = $check_memory - $memory_used;
-				}
-
-				$full_change_list['memory'] = round( ( $memory_used / 1000000 ), 2 );
-
-				$itsec_logger->log_event(
-					'file_change',
-					8,
-					$full_change_list
-				);
-
-				if (
-					true === $send_email &&
-					false !== $scheduled_call &&
-					isset( $this->settings['email'] ) &&
-					true === $this->settings['email'] &&
-					(
-						0 < $files_added_count ||
-						0 < $files_changed_count ||
-						0 < $files_deleted_count
-					)
-				) {
-
-					$email_details = array(
-						$files_added_count,
-						$files_deleted_count,
-						$files_changed_count,
-						$full_change_list
-					);
-
-					$this->send_notification_email( $email_details );
-				}
-
-				if (
-					function_exists( 'get_current_screen' ) &&
-					(
-						! isset( get_current_screen()->id ) ||
-						false === strpos( get_current_screen()->id, 'security_page_toplevel_page_itsec_logs' )
-					) &&
-					isset( $this->settings['notify_admin'] ) &&
-					true === $this->settings['notify_admin']
-				) {
-					ITSEC_Modules::set_setting( 'file-change', 'show_warning', true );
-				}
-
-				$itsec_files->release_file_lock( 'file_change' );
-
-				if ( $files_added_count > 0 || $files_changed_count > 0 || $files_deleted_count > 0 ) {
-
-					$this->running = false;
-
-					//There were changes found
-					if ( $return_data ) {
-
-						return $full_change_list;
-
-					} else {
-
-						return true;
-
-					}
-
-				} else {
-
-					$this->running = false;
-
-					return false; //No changes were found
-
-				}
-
-			}
-
-			$this->running = false;
-
-			return -1; //An error occured
-
-		}
-
-		return -1;
-
-	}
-
-	/**
-	 * Get Report Details
-	 *
-	 * Creates the HTML markup for the email that is to be built
-	 *
-	 * @since 4.0.0
-	 *
-	 * @param array $email_details array of details to build email
-	 *
-	 * @return string report details
-	 */
-	public function get_email_report( $email_details ) {
-
-		global $itsec_globals;
-
-		//seperate array by category
-		$added   = $email_details[3]['added'];
-		$removed = $email_details[3]['removed'];
-		$changed = $email_details[3]['changed'];
-		$report  = '<strong>' . __( 'Scan Time:', 'better-wp-security' ) . '</strong> ' . date( 'l, F jS g:i a e', $itsec_globals['current_time'] ) . "<br />" . PHP_EOL;
-		$report .= '<strong>' . __( 'Files Added:', 'better-wp-security' ) . '</strong> ' . $email_details[0] . "<br />" . PHP_EOL;
-		$report .= '<strong>' . __( 'Files Deleted:', 'better-wp-security' ) . '</strong> ' . $email_details[1] . "<br />" . PHP_EOL;
-		$report .= '<strong>' . __( 'Files Modified:', 'better-wp-security' ) . '</strong> ' . $email_details[2] . "<br />" . PHP_EOL;
-		$report .= '<strong>' . __( 'Memory Used:', 'better-wp-security' ) . '</strong> ' . $email_details[3]['memory'] . " MB<br />" . PHP_EOL;
-
-		$report .= $this->build_table_section( __( 'Added', 'better-wp-security' ), $added );
-		$report .= $this->build_table_section( __( 'Deleted', 'better-wp-security' ), $removed );
-		$report .= $this->build_table_section( __( 'Modified', 'better-wp-security' ), $changed );
-
-		return $report;
-
-	}
-
-	/**
-	 * Builds table section for file report
-	 *
-	 * Builds the individual table areas for files added, changed and deleted that goes in the file
-	 * change notification emails.
-	 *
-	 * @since  4.6.0
-	 *
-	 * @access private
-	 *
-	 * @param string $title User readable title to display
-	 * @param array  $files array of files to build the report on
-	 *
-	 * @return string the markup with the given files to be added to the report
-	 */
-	private function build_table_section( $title, $files ) {
-
-		$section = '<h4>' . __( 'Files', 'better-wp-security' ) . ' ' . $title . '</h4>';
-		$section .= '<table border="1" style="width: 100%; text-align: center;">' . PHP_EOL;
-		$section .= '<tr>' . PHP_EOL;
-		$section .= '<th>' . __( 'File', 'better-wp-security' ) . '</th>' . PHP_EOL;
-		$section .= '<th>' . __( 'Modified', 'better-wp-security' ) . '</th>' . PHP_EOL;
-		$section .= '<th>' . __( 'File Hash', 'better-wp-security' ) . '</th>' . PHP_EOL;
-		$section .= '</tr>' . PHP_EOL;
-
-		if ( isset( $files ) && is_array( $files ) && 0 < sizeof( $files ) ) {
-
-			foreach ( $files as $item => $attr ) {
-
-				$section .= '<tr>' . PHP_EOL;
-				$section .= '<td>' . $item . '</td>' . PHP_EOL;
-				$section .= '<td>' . date( 'l F jS, Y \a\t g:i a e', ( isset( $attr['mod_date'] ) ? $attr['mod_date'] : $attr['d'] ) ) . '</td>' . PHP_EOL;
-				$section .= '<td>' . ( isset( $attr['hash'] ) ? $attr['hash'] : $attr['h'] ) . '</td>' . PHP_EOL;
-				$section .= '</tr>' . PHP_EOL;
-
-			}
-
+		if ( $user_initiated ) {
+			$id   = 'file-change-fast';
+			$opts = array( 'fire_at' => ITSEC_Core::get_current_time_gmt() );
 		} else {
-
-			$section .= '<tr>' . PHP_EOL;
-			$section .= '<td colspan="3">' . __( 'No files were changed.', 'better-wp-security' ) . '</td>' . PHP_EOL;
-			$section .= '</tr>' . PHP_EOL;
-
+			$id   = 'file-change';
+			$opts = array();
 		}
 
-		$section .= '</table>' . PHP_EOL;
+		$scheduler->schedule_loop( $id, array(
+			'step'  => 'get-files',
+			'chunk' => self::C_ADMIN,
+		), $opts );
 
-		return $section;
-
+		return true;
 	}
 
 	/**
-	 * Check file list
+	 * Check if a scan is running.
 	 *
-	 * Checks if given file should be included in file check based on exclude/include options
+	 * @param ITSEC_Scheduler
+	 * @param bool $user_initiated Whether the user initiated run is running for the scheduled loop scan.
 	 *
-	 * @since  4.0.0
-	 *
-	 * @access private
-	 *
-	 * @param string $file path of file to check from site root
-	 *
-	 * @return bool true if file should be checked false if not
+	 * @return bool
 	 */
-	private function is_checkable_file( $file ) {
+	public static function is_running( $scheduler = null, $user_initiated = null ) {
 
-		//get file list from last check
-		$file_list = $this->settings['file_list'];
-		$type_list = $this->settings['types'];
+		$scheduler = $scheduler ? $scheduler : ITSEC_Core::get_scheduler();
 
-		//Make sure the file list is an array
-		if ( ! is_array( $file_list ) ) {
-			$file_list = array();
+		if ( true === $user_initiated ) {
+			if ( $scheduler->is_single_scheduled( 'file-change-fast' ) ) {
+				return true;
+			}
+		} elseif ( false === $user_initiated ) {
+			if ( $scheduler->is_single_scheduled( 'file-change' ) ) {
+				return true;
+			}
+		} elseif ( null === $user_initiated ) {
+			return $scheduler->is_single_scheduled( 'file-change' ) || $scheduler->is_single_scheduled( 'file-change-fast' );
 		}
 
-		//lets check the absolute path too for excludes just to be sure
-		$abs_file = ITSEC_Lib::get_home_path() . $file;
+		return ! ITSEC_File_Change::make_progress_storage()->is_empty();
+	}
 
-		//assume not a directory and not checked
-		$flag = false;
+	/**
+	 * Get the scan status.
+	 *
+	 * @param bool $is_running
+	 *
+	 * @return array
+	 */
+	public static function get_status( $is_running = true ) {
+		$scheduler = ITSEC_Core::get_scheduler();
 
-		if ( is_array( $this->excludes ) && ( in_array( $file, $this->excludes ) || in_array( $abs_file, $this->excludes ) ) ) {
+		$storage = ITSEC_File_Change::make_progress_storage();
+
+		if ( ! $storage->is_empty() ) {
+			switch ( $storage->get( 'step' ) ) {
+				case 'get-files':
+					switch ( $storage->get( 'chunk' ) ) {
+						case self::C_ADMIN:
+							$message = esc_html__( 'Scanning admin files...', 'better-wp-security' );
+							break;
+						case self::C_INCLUDES:
+							$message = esc_html__( 'Scanning includes files...', 'better-wp-security' );
+							break;
+						case self::C_THEMES:
+							$message = esc_html__( 'Scanning theme files...', 'better-wp-security' );
+							break;
+						case self::C_PLUGINS:
+							$message = esc_html__( 'Scanning plugin files...', 'better-wp-security' );
+							break;
+						case self::C_CONTENT:
+							$message = esc_html__( 'Scanning content files...', 'better-wp-security' );
+							break;
+						case self::C_UPLOADS:
+							$message = esc_html__( 'Scanning media files...', 'better-wp-security' );
+							break;
+						case self::C_OTHERS:
+						default:
+							$message = esc_html__( 'Scanning files...', 'better-wp-security' );
+							break;
+					}
+					break;
+				case 'compare-files':
+					$message = esc_html__( 'Comparing files...', 'better-wp-security' );
+					break;
+				case 'check-hashes':
+					$message = esc_html__( 'Verifying file changes...', 'better-wp-security' );
+					break;
+				case 'scan-files':
+					$message = esc_html__( 'Checking for malware...', 'better-wp-security' );
+					break;
+				case 'complete':
+					$message = esc_html__( 'Wrapping up...', 'better-wp-security' );
+					break;
+				default:
+					$message = esc_html__( 'Scanning...', 'better-wp-security' );
+					break;
+			}
+
+			$status = array(
+				'running' => true,
+				'step'    => $storage->get( 'step' ),
+				'chunk'   => $storage->get( 'chunk' ),
+				'health'  => $storage->health_check(),
+				'message' => $message,
+			);
+		} elseif ( get_site_option( self::DESTROYED ) ) {
+			delete_site_option( self::DESTROYED );
+			$status = array(
+				'running' => false,
+				'aborted' => true,
+				'message' => esc_html__( 'Scan could not be completed. Please contact support if this error persists.', 'better-wp-security' ),
+			);
+		} elseif ( self::is_running( $scheduler ) ) {
+			$status = array(
+				'running' => true,
+				'message' => esc_html__( 'Preparing...', 'better-wp-security' ),
+			);
+		} elseif ( $is_running ) {
+			ITSEC_Storage::save();
+			ITSEC_Storage::reload();
+			ITSEC_Modules::get_settings_obj( 'file-change' )->load();
+
+			$status = array(
+				'running'       => false,
+				'complete'      => true,
+				'message'       => esc_html__( 'Complete!', 'better-wp-security' ),
+				'found_changes' => ITSEC_Modules::get_setting( 'file-change', 'last_scan' ),
+			);
+		} else {
+			$status = array(
+				'running' => false,
+				'message' => '',
+			);
+		}
+
+		return $status;
+	}
+
+	/**
+	 * Recover from a failed health check.
+	 *
+	 * @return bool Whether the scan was recovered. Will return false if aborted.
+	 */
+	public static function recover() {
+
+		if ( ! ITSEC_Lib::get_lock( 'file-change-recover' ) ) {
+			ITSEC_Log::add_debug( 'file_change', 'skipping-recovery::no-lock' );
+
 			return false;
 		}
 
-		if ( in_array( $file, $file_list ) ) {
-			$flag = true;
+		$storage = ITSEC_File_Change::make_progress_storage();
+
+		if ( $storage->is_empty() ) {
+			ITSEC_Log::add_debug( 'file_change', 'skipping-recovery::empty-storage', array(
+				'backtrace' => debug_backtrace()
+			) );
+
+			return false;
 		}
 
-		if ( ! is_dir( $file ) ) {
+		$scheduler = ITSEC_Core::get_scheduler();
 
-			$path_info = pathinfo( $file );
+		$store = array(
+			'step'         => $storage->get( 'step' ),
+			'chunk'        => $storage->get( 'chunk' ),
+			'id'           => $storage->get( 'id' ),
+			'data'         => $storage->get( 'data' ),
+			'memory'       => $storage->get( 'memory' ),
+			'memory_peak'  => $storage->get( 'memory_peak' ),
+			'health_check' => $storage->health_check(),
+		);
 
-			if ( isset( $path_info['extension'] ) && in_array( '.' . $path_info['extension'], $this->excludes ) ) {
+		ITSEC_Log::add_debug( 'file_change', 'attempting-recovery', array( 'storage' => $store ) );
 
-				return false;
+		if ( empty( $store['step'] ) ) {
+			ITSEC_Log::add_debug( 'file_change', 'recovery-failed-no-step' );
 
-			}
+			self::abort();
 
-			if ( isset( $path_info['extension'] ) && in_array( '.' . $path_info['extension'], $type_list ) ) {
-				$flag = true;
-			}
+			ITSEC_Lib::release_lock( 'file-change-recover' );
 
+			return false;
 		}
 
-		if ( 'exclude' === $this->settings['method'] ) {
+		$job_data          = $store['data'];
+		$job_data['step']  = $store['step'];
+		$job_data['chunk'] = $store['chunk'];
 
-			if ( true === $flag ) { //if exclude reverse
-				return false;
-			} else {
-				return true;
-			}
+		if ( 1 === $job_data['loop_item'] || ( 'get-files' === $job_data['step'] && self::C_ADMIN === $job_data['chunk'] ) ) {
+			ITSEC_Log::add_debug( 'file_change', 'recovery-failed-first-loop' );
 
-		} else { //return flag
+			self::abort();
 
-			return $flag;
+			ITSEC_Lib::release_lock( 'file-change-recover' );
 
+			return false;
 		}
 
+		$job = new ITSEC_Job( $scheduler, $store['id'], $job_data, array( 'single' => true ) );
+
+		if ( 5 < $job->is_retry() ) {
+			ITSEC_Log::add_debug( 'file_change', 'recovery-failed-too-many-retries' );
+
+			self::abort();
+
+			ITSEC_Lib::release_lock( 'file-change-recover' );
+
+			return false;
+		}
+
+		$job->reschedule_in( 30 );
+
+		ITSEC_Log::add_debug( 'file_change', 'recovery-scheduled', compact( 'job' ) );
+		ITSEC_Lib::release_lock( 'file-change-recover' );
+
+		return true;
 	}
 
 	/**
-	 * Scans all files in a given path
+	 * Abort an in-progress scan.
 	 *
-	 * Scans all items in a given path recursively building an array of items including
-	 * hashes, filenames and modification dates
-	 *
-	 * @since  4.0.0
-	 *
-	 * @access private
-	 *
-	 * @param string $path           [optional] path to scan, defaults to WordPress root
-	 * @param bool   $scheduled_call is this a scheduled call
-	 * @param mixed  $chunk          the current chunk or false
-	 *
-	 * @return array array of files found and their information
-	 *
+	 * @param bool $user_initiated
 	 */
-	private function scan_files( $path = '', $scheduled_call, $chunk ) {
+	public static function abort( $user_initiated = false ) {
+		$storage = ITSEC_File_Change::make_progress_storage();
 
-		if ( $chunk !== false ) {
-
-			$content_dir = explode( '/', WP_CONTENT_DIR );
-			$plugin_dir  = explode( '/', WP_PLUGIN_DIR );
-
-			$dirs = array(
-				'wp-admin/',
-				WPINC . '/',
-				$content_dir[ sizeof( $content_dir ) - 1 ] . '/',
-				$content_dir[ sizeof( $content_dir ) - 1 ] . '/uploads/',
-				$content_dir[ sizeof( $content_dir ) - 1 ] . '/themes/',
-				$content_dir[ sizeof( $content_dir ) - 1 ] . '/' . $plugin_dir[ sizeof( $plugin_dir ) - 1 ] . '/',
-				''
-			);
-
-			$path = $dirs[ $chunk ];
-
-			unset( $dirs[ $chunk ] );
-
-			$this->excludes = $dirs;
-
+		if ( 'file-change-fast' === $storage->get( 'id' ) ) {
+			ITSEC_Core::get_scheduler()->unschedule_single( 'file-change-fast', null );
+		} else {
+			ITSEC_Core::get_scheduler()->unschedule_single( 'file-change', null );
+			self::schedule_start( false );
 		}
 
-		$data = array();
+		if ( $process = $storage->get( 'process' ) ) {
+			ITSEC_Log::add_process_stop( $process, array( 'aborted' => true ) );
+		}
 
-		$clean_path = sanitize_text_field( $path );
+		if ( $user_initiated ) {
+			$user = get_current_user_id();
+			ITSEC_Log::add_warning( 'file_change', "file-scan-aborted::{$user}", array(
+				'id'    => $storage->get( 'id' ),
+				'step'  => $storage->get( 'step' ),
+				'chunk' => $storage->get( 'chunk' ),
+			) );
+		} else {
+			ITSEC_Log::add_fatal_error( 'file_change', 'file-scan-aborted', array(
+				'id'    => $storage->get( 'id' ),
+				'step'  => $storage->get( 'step' ),
+				'chunk' => $storage->get( 'chunk' ),
+			) );
+		}
 
-		if ( $directory_handle = @opendir( ITSEC_Lib::get_home_path() . $clean_path ) ) { //get the directory
+		$storage->clear();
+		update_site_option( self::DESTROYED, ITSEC_Core::get_current_time_gmt() );
+	}
 
-			while ( false !== ( $item = @readdir( $directory_handle ) ) ) { // loop through dirs
+	/**
+	 * Handle a Job.
+	 *
+	 * @param ITSEC_Job $job
+	 */
+	public function run( ITSEC_Job $job ) {
 
-				if ( '.' != $item && '..' != $item ) { //don't scan parents
+		$data = $job->get_data();
 
-					$relname = $path . $item;
+		if ( empty( $data['step'] ) ) {
+			ITSEC_Log::add_debug( 'file_change', 'attempting-recovery::no-job-step', array( 'job' => $data ) );
+			self::recover();
 
-					$absname = ITSEC_Lib::get_home_path() . $relname;
+			return;
+		}
 
-					if ( is_dir( $absname ) && 'dir' == filetype( $absname ) ) {
+		if ( ! $this->allow_to_run( $job ) ) {
+			ITSEC_Log::add_debug( 'file_change', 'rescheduling', array( 'job' => $data, 'id' => $job->get_id() ) );
+			$job->reschedule_in( 10 * MINUTE_IN_SECONDS );
 
-						$is_dir     = true;
-						$check_name = trailingslashit( $relname );
+			return;
+		}
 
-					} else {
+		ITSEC_Lib::set_minimum_memory_limit( '512M' );
+		@set_time_limit( 0 );
 
-						$is_dir     = false;
-						$check_name = $relname;
+		if ( ! defined( 'ITSEC_DOING_FILE_CHECK' ) ) {
+			define( 'ITSEC_DOING_FILE_CHECK', true );
+		}
 
-					}
+		if ( 1 === $data['loop_item'] ) {
+			$settings = $this->settings;
 
-					if ( true === $this->is_checkable_file( $check_name ) ) { //make sure the user wants this file scanned
+			$process = ITSEC_Log::add_process_start( 'file_change', 'scan', array(
+				'settings'       => $settings,
+				'scheduled_call' => 'file-change' === $job->get_id(),
+			) );
+			$this->get_storage()->set( 'process', $process );
+			$this->get_storage()->set( 'id', $job->get_id() );
+			delete_site_option( self::DESTROYED );
+		}
 
-						if ( true === $is_dir ) { //if directory scan it
+		$this->get_storage()->set( 'data', $data );
+		$this->get_storage()->set( 'step', $data['step'] );
 
-							$data = array_merge( $data, $this->scan_files( $relname . '/', $scheduled_call, false ) );
+		$memory_used = @memory_get_peak_usage();
 
-						} else { //is file so add to array
+		switch ( $data['step'] ) {
+			case 'get-files':
+				$this->get_files( $job );
+				break;
+			case 'compare-files':
+				$this->compare_files( $job );
+				break;
+			case 'check-hashes':
+				$this->check_hashes( $job );
+				break;
+			case 'complete':
+				$this->complete( $job );
+				break;
+		}
 
-							$data[ $relname ]      = array();
-							$data[ $relname ]['d'] = @filemtime( $absname );
-							$data[ $relname ]['h'] = @md5_file( $absname );
+		if ( $this->get_storage()->is_empty() ) {
+			return;
+		}
 
-						}
+		$check_memory = @memory_get_peak_usage();
 
-					}
+		if ( $check_memory > $memory_used ) {
+			$memory_used = $check_memory - $memory_used;
+		}
 
-				}
+		if ( $memory_used > $this->get_storage()->get( 'memory' ) ) {
+			$this->get_storage()->set( 'memory', $memory_used );
+			$this->get_storage()->set( 'memory_peak', $check_memory );
+		}
+	}
 
+	/**
+	 * Should we allow a scan to be run now.
+	 *
+	 * This is used to block a scheduled scan from running while a user initiated scan is currently processing.
+	 *
+	 * @param ITSEC_Job $job
+	 *
+	 * @return bool
+	 */
+	private function allow_to_run( ITSEC_Job $job ) {
+
+		if ( 'file-change' !== $job->get_id() ) {
+			return true;
+		}
+
+		if ( ITSEC_Core::get_scheduler()->is_single_scheduled( 'file-change-fast', null ) ) {
+			return false;
+		}
+
+		$data = $job->get_data();
+
+		// Don't allow starting a slow file change scan if one is already in progress and running.
+		if ( 1 === $data['loop_item'] && ! $this->get_storage()->is_empty() ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get the hashes and date modify times for all files in the requested chunk.
+	 *
+	 * This will write the file list to step storage and schedule the next chunk.
+	 * If last chunk, will schedule the compare-files step.
+	 *
+	 * @param ITSEC_Job $job
+	 */
+	private function get_files( ITSEC_Job $job ) {
+
+		$data = $job->get_data();
+		$this->get_storage()->set( 'chunk', $data['chunk'] );
+
+		$this->add_process_update( array(
+			'status' => 'get_chunk_files',
+			'chunk'  => $data['chunk'],
+		) );
+
+		if ( self::C_PLUGINS === $data['chunk'] ) {
+			list( $file_list, $do_same_chunk ) = $this->get_files_plugins();
+		} else {
+			$file_list     = $this->get_chunk_scanner()->scan( $data['chunk'] );
+			$do_same_chunk = false;
+		}
+
+		$this->get_storage()->append( 'file_list', $file_list );
+		$pos = array_search( $data['chunk'], $this->chunk_order, true );
+
+		if ( $do_same_chunk ) {
+			$job->schedule_next_in_loop( array( 'chunk' => $data['chunk'] ) );
+		} elseif ( isset( $this->chunk_order[ $pos + 1 ] ) ) {
+			$this->get_storage()->set( 'chunk', $this->chunk_order[ $pos + 1 ] );
+			$job->schedule_next_in_loop( array(
+				'chunk' => $this->chunk_order[ $pos + 1 ],
+			) );
+		} else {
+			$this->add_process_update( array( 'status' => 'file_scan_complete' ) );
+			$job->schedule_next_in_loop( array(
+				'step' => 'compare-files'
+			) );
+		}
+	}
+
+	/**
+	 * Handler for plugins so we don't try to scan more than 10 plugins in a process.
+	 *
+	 * @return array
+	 */
+	private function get_files_plugins() {
+
+		$excludes = $this->get_storage()->get( 'done_plugins' );
+		$this->add_process_update( array( 'status' => 'get_chunk_files_plugins', 'excludes' => $excludes ) );
+		$file_list = $this->get_chunk_scanner()->scan( self::C_PLUGINS, 10, $excludes );
+
+		$scanned = array();
+
+		foreach ( $file_list as $file => $attr ) {
+			$trimmed = ITSEC_Lib::replace_prefix( $file, WP_PLUGIN_DIR . '/', '' );
+			list( $top_dir ) = explode( '/', $trimmed );
+
+			$scanned[ WP_PLUGIN_DIR . '/' . $top_dir ] = 1;
+		}
+
+		$this->add_process_update( array( 'status' => 'get_chunk_files_plugins_scanned', 'scanned' => $scanned ) );
+
+		$this->get_storage()->set( 'done_plugins', array_merge( $this->get_storage()->get( 'done_plugins' ), array_keys( $scanned ) ) );
+
+		return array( $file_list, count( $scanned ) >= 10 );
+	}
+
+	/**
+	 * Compare the list of file hashes to determine what files have been added/changed/removed.
+	 *
+	 * If there are no file changes, the scan will be completed. Otherwise it will schedule a job
+	 * to check the hashes.
+	 *
+	 * @param ITSEC_Job $job
+	 */
+	private function compare_files( ITSEC_Job $job ) {
+
+		$excludes = array();
+
+		foreach ( $this->settings['file_list'] as $file ) {
+			$cleaned              = untrailingslashit( get_home_path() . ltrim( $file, '/' ) );
+			$excludes[ $cleaned ] = 1;
+		}
+
+		$types = array_flip( $this->settings['types'] );
+
+		$this->add_process_update( array( 'status' => 'file_comparisons_start', 'excludes' => $excludes, 'types' => $types ) );
+
+		$current_files = $this->get_storage()->get_cursor( 'file_list' );
+		$prev_files    = self::get_file_list_to_compare();
+
+		$report = array();
+
+		foreach ( $current_files as $file => $attr ) {
+			if ( ! isset( $prev_files[ $file ] ) ) {
+				$attr['t']       = self::T_ADDED;
+				$report[ $file ] = $attr;
+			} elseif ( $prev_files[ $file ]['h'] !== $attr['h'] ) {
+				$attr['t']       = self::T_CHANGED;
+				$report[ $file ] = $attr;
 			}
 
-			@closedir( $directory_handle ); //close the directory we're working with
-
+			unset( $prev_files[ $file ] );
 		}
 
-		return $data; // return the files we found in this dir
+		foreach ( $prev_files as $file => $attr ) {
 
+			if ( isset( $excludes[ $file ] ) ) {
+				continue;
+			}
+
+			foreach ( $excludes as $exclude => $_ ) {
+				if ( 0 === strpos( $file, trailingslashit( $exclude ) ) ) {
+					continue 2;
+				}
+			}
+
+			$extension = '.' . pathinfo( $file, PATHINFO_EXTENSION );
+
+			if ( isset( $types[ $extension ] ) ) {
+				continue;
+			}
+
+			$attr['t']       = self::T_REMOVED;
+			$report[ $file ] = $attr;
+		}
+
+		$this->add_process_update( array( 'status' => 'file_comparisons_complete' ) );
+
+		if ( ! $report ) {
+			$this->add_process_update( array( 'status' => 'file_comparisons_complete_no_changes' ) );
+			$this->complete( $job );
+
+			return;
+		}
+
+		$this->get_storage()->set( 'files', $report );
+		$job->schedule_next_in_loop( array( 'step' => 'check-hashes' ) );
+	}
+
+	/**
+	 * Check the file changes with each package's hashes to determine whether the change was expected or not.
+	 *
+	 * @param ITSEC_Job $job
+	 */
+	private function check_hashes( ITSEC_Job $job ) {
+
+		$this->add_process_update( array( 'status' => 'hash_comparisons_start' ) );
+
+		do_action( 'itsec-file-change-start-hash-comparisons' );
+
+		$factory    = $this->get_package_factory();
+		$comparator = $this->get_comparator();
+		$packages   = $factory->find_packages_for_files( $this->get_storage()->get_cursor( 'files' ) );
+
+		foreach ( $packages as $root => $group ) {
+			/** @var ITSEC_File_Change_Package $package */
+			$package = $group['package'];
+			$files   = $group['files'];
+
+			if ( ! $comparator->supports_package( $package ) ) {
+				$packages[ $root ]['files'] = $this->set_default_severity( $files );
+				continue;
+			}
+
+			if ( $comparator instanceof ITSEC_File_Change_Hash_Comparator_Loadable ) {
+				try {
+					$comparator->load( $package );
+				} catch ( ITSEC_File_Change_Hash_Loading_Failed_Exception $e ) {
+					$packages[ $root ]['files'] = $this->set_default_severity( $files );
+					$this->add_process_update( array( 'status' => 'hash_load_failed', 'e' => (string) $e ) );
+					continue;
+				}
+			}
+
+			// $file is a relative path to the package.
+			// $attr contains 'h' for the hash, and 'd' for the date modified.
+			foreach ( $files as $file => $attr ) {
+				switch ( $attr['t'] ) {
+					case self::T_ADDED:
+						if ( ! $comparator->has_hash( $file, $package ) ) {
+							$attr['s'] = self::S_UNKNOWN_FILE;
+							break;
+						}
+
+						if ( ! $comparator->hash_matches( $attr['h'], $file, $package ) ) {
+							// This isn't exactly an unknown file, or a bad change, but it fits more with bad change,
+							// and is unlikely to occur so not worth a separate report type.
+							$attr['s'] = self::S_BAD_CHANGE;
+							break;
+						}
+
+						$attr['s'] = self::S_NONE;
+						break;
+					case self::T_CHANGED:
+						if ( ! $comparator->has_hash( $file, $package ) ) {
+							break;
+						}
+
+						if ( ! $comparator->hash_matches( $attr['h'], $file, $package ) ) {
+							$attr['s'] = self::S_BAD_CHANGE;
+							break;
+						}
+						$attr['s'] = self::S_NONE;
+						break;
+					case self::T_REMOVED:
+						if ( ! $comparator->has_hash( $file, $package ) ) {
+							$attr['s'] = self::S_NONE;
+						}
+						break;
+				}
+
+				if ( ! isset( $attr['s'] ) ) {
+					$attr['s'] = self::S_NORMAL;
+				}
+
+				$files[ $file ] = $attr;
+			}
+
+			$packages[ $root ]['files'] = $files;
+		}
+
+		do_action( 'itsec-file-change-end-hash-comparisons' );
+
+		$this->add_process_update( array( 'status' => 'hash_comparisons_complete' ) );
+		$this->storage->set( 'max_severity', $this->get_max_severity( $packages ) );
+		$this->storage->set( 'change_list', $this->build_change_list( $packages ) );
+
+		$job->schedule_next_in_loop( array( 'step' => 'complete' ) );
+	}
+
+	/**
+	 * Run the completion routine.
+	 *
+	 * @param ITSEC_Job $job
+	 */
+	private function complete( ITSEC_Job $job ) {
+
+		$this->add_process_update( array( 'status' => 'start_complete' ) );
+
+		$storage = $this->get_storage();
+		self::record_file_list( $storage->get_cursor( 'file_list' ) );
+
+		$list = $storage->get( 'change_list' );
+
+		$list['memory']      = round( ( $storage->get( 'memory' ) / 1000000 ), 2 );
+		$list['memory_peak'] = round( ( $storage->get( 'memory_peak' ) / 1000000 ), 2 );
+
+		$c_added   = count( $list['added'] );
+		$c_changed = count( $list['changed'] );
+		$c_removed = count( $list['removed'] );
+
+		$found_changes = $c_added || $c_changed || $c_removed;
+
+		if ( $found_changes ) {
+
+			$severity = $storage->get( 'max_severity' );
+
+			if ( $severity > self::S_UNKNOWN_FILE ) {
+				$method = 'add_critical_issue';
+			} else {
+				$method = 'add_warning';
+			}
+
+			$id = ITSEC_Log::$method( 'file_change', "changes-found::{$c_added},{$c_removed},{$c_changed}", $list );
+		} else {
+			$id = ITSEC_Log::add_notice( 'file_change', 'no-changes-found', $list );
+		}
+
+		ITSEC_Modules::set_setting( 'file-change', 'last_scan', $found_changes ? $id : 0 );
+		update_site_option( 'itsec_file_change_latest', $list );
+
+		if ( $found_changes && $this->settings['notify_admin'] ) {
+			ITSEC_Modules::set_setting( 'file-change', 'show_warning', true );
+		}
+
+		if ( $process = $storage->get( 'process' ) ) {
+			ITSEC_Log::add_process_stop( $process );
+		}
+
+		$storage->clear();
+
+		if ( 'file-change' === $job->get_id() ) {
+			$job->schedule_new_loop( array(
+				'step'  => 'get-files',
+				'chunk' => self::C_ADMIN,
+			) );
+		}
+
+		$this->send_notification_email( array( $c_added, $c_removed, $c_changed, $list ) );
+	}
+
+	/**
+	 * Get the comparator to use to check if changes are expected.
+	 *
+	 * Handles lazily setting the comparator since it is not needed for all stages of the file change scan.
+	 *
+	 * @return ITSEC_File_Change_Hash_Comparator
+	 */
+	private function get_comparator() {
+		if ( ! $this->comparator ) {
+			$comparators = array(
+				new ITSEC_File_Change_Hash_Comparator_Managed_Files(),
+			);
+
+			/**
+			 * Filter the list of comparators to use.
+			 */
+			$comparators = apply_filters( 'itsec_file_change_comparators', $comparators );
+
+			$this->comparator = new ITSEC_File_Change_Hash_Comparator_Chain( $comparators );
+		}
+
+		return $this->comparator;
+	}
+
+	/**
+	 * Get the Package factory.
+	 *
+	 * @return ITSEC_File_Change_Package_Factory
+	 */
+	private function get_package_factory() {
+		if ( ! $this->package_factory ) {
+			$this->package_factory = new ITSEC_File_Change_Package_Factory();
+		}
+
+		return $this->package_factory;
+	}
+
+	/**
+	 * Get the Chunk Scanner.
+	 *
+	 * @return ITSEC_File_Change_Chunk_Scanner
+	 */
+	private function get_chunk_scanner() {
+		if ( ! $this->chunk_scanner ) {
+			$this->chunk_scanner = new ITSEC_File_Change_Chunk_Scanner( $this->settings );
+		}
+
+		return $this->chunk_scanner;
+	}
+
+	/**
+	 * Get the main storage mechanism.
+	 *
+	 * @return ITSEC_Lib_Distributed_Storage
+	 */
+	private function get_storage() {
+
+		if ( null === $this->storage ) {
+			$this->storage = ITSEC_File_Change::make_progress_storage();
+		}
+
+		return $this->storage;
+	}
+
+	/**
+	 * Set the default severity for a list of files.
+	 *
+	 * @param array $files
+	 *
+	 * @return array
+	 */
+	private function set_default_severity( $files ) {
+		foreach ( $files as $file => $attr ) {
+			$files[ $file ]['s'] = self::S_NORMAL;
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Get the maximum severity level of a file change.
+	 *
+	 * @param array $packaged
+	 *
+	 * @return int
+	 */
+	private function get_max_severity( $packaged ) {
+
+		$severity = self::S_NONE;
+
+		foreach ( $packaged as $root => $group ) {
+			foreach ( $group['files'] as $attr ) {
+				if ( $attr['s'] > $severity ) {
+					$severity = $attr['s'];
+				}
+			}
+		}
+
+		return $severity;
+	}
+
+	/**
+	 * Convert a list of packages and their files to a list of the file change types.
+	 *
+	 * @param array $packaged
+	 *
+	 * @return array
+	 */
+	private function build_change_list( $packaged ) {
+
+		require_once( ABSPATH . 'wp-admin/includes/file.php' );
+		$home = get_home_path();
+
+		$list = array(
+			'added'   => array(),
+			'removed' => array(),
+			'changed' => array(),
+		);
+
+		foreach ( $packaged as $root => $group ) {
+			/** @var ITSEC_File_Change_Package $package */
+			$package = $group['package'];
+
+			foreach ( $group['files'] as $file => $attr ) {
+				if ( $attr['s'] > self::S_NONE && ! empty( $attr['t'] ) ) {
+					$path = $package->get_root_path() . $file;
+
+					if ( 0 === strpos( $path, $home ) ) {
+						$path = substr( $path, strlen( $home ) );
+					}
+
+					$attr['p'] = (string) $package;
+
+					switch ( $attr['t'] ) {
+						case self::T_ADDED:
+							$list['added'][ $path ] = $attr;
+							break;
+						case self::T_CHANGED:
+							$list['changed'][ $path ] = $attr;
+							break;
+						case self::T_REMOVED:
+							$list['removed'][ $path ] = $attr;
+					}
+				}
+			}
+		}
+
+		return $list;
+	}
+
+	private function add_process_update( $data = false ) {
+		if ( $process = $this->get_storage()->get( 'process' ) ) {
+			ITSEC_Log::add_process_update( $process, $data );
+		}
+	}
+
+	/**
+	 * Make the storage for recording the static list of files and their hashes.
+	 *
+	 * @return ITSEC_Lib_Distributed_Storage
+	 */
+	public static function make_file_list_storage() {
+		return new ITSEC_Lib_Distributed_Storage( 'file-list', array(
+			'home'  => array(),
+			'files' => array(
+				'split'       => true,
+				'chunk'       => 2500,
+				'serialize'   => 'wp_json_encode',
+				'unserialize' => 'ITSEC_File_Change::_json_decode_associative',
+			),
+		) );
+	}
+
+	/**
+	 * Record a list of file hashes and change times.
+	 *
+	 * This should not be done until the whole scan process is complete.
+	 *
+	 * @param iterable $file_list
+	 *
+	 * @return bool
+	 */
+	public static function record_file_list( $file_list ) {
+
+		$storage = self::make_file_list_storage();
+		$storage->set( 'home', get_home_path() );
+
+		if ( is_array( $file_list ) ) {
+			return $storage->set( 'files', $file_list );
+		}
+
+		return $storage->set_from_iterator( 'files', $file_list );
+	}
+
+	/**
+	 * Get the file list we want to compare our newly compared files to.
+	 *
+	 * This is in effect the last change list recorded.
+	 *
+	 * @return array
+	 */
+	public static function get_file_list_to_compare() {
+
+		$storage = self::make_file_list_storage();
+		$files   = $storage->get( 'files' );
+
+		if ( ! $files ) {
+			return array();
+		}
+
+		$home = $storage->get( 'home' );
+
+		if ( $home === get_home_path() ) {
+			return $files;
+		}
+
+		$new_home = get_home_path();
+		$updated  = array();
+
+		foreach ( $files as $file => $attr ) {
+			$updated[ ITSEC_Lib::replace_prefix( $file, $home, $new_home ) ] = $attr;
+		}
+
+		$storage->set( 'files', $updated );
+		$storage->set( 'home', $new_home );
+
+		return $updated;
 	}
 
 	/**
@@ -583,52 +1010,87 @@ final class ITSEC_File_Change_Scanner {
 	 */
 	private function send_notification_email( $email_details ) {
 
-		global $itsec_globals;
+		$changed = $email_details[0] + $email_details[1] + $email_details[2];
 
-		$itsec_notify = ITSEC_Core::get_itsec_notify();
-
-		if ( ! ITSEC_Modules::get_setting( 'global', 'digest_email' ) ) {
-
-			$headers = 'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>' . "\r\n";
-			$subject = '[' . get_option( 'siteurl' ) . '] ' . __( 'WordPress File Change Warning', 'better-wp-security' ) . ' ' . date( 'l, F jS, Y \a\\t g:i a e', $itsec_globals['current_time'] );
-
-			$body = '<p>' . __( 'A file (or files) on your site at ', 'better-wp-security' ) . ' ' . get_option( 'siteurl' ) . __( ' have been changed. Please review the report below to verify changes are not the result of a compromise.', 'better-wp-security' ) . '</p>';
-			$body .= $this->get_email_report( $email_details ); //get report
-
-			$args = array(
-				'headers' => $headers,
-				'message' => $body,
-				'subject' => $subject,
-			);
-
-			$itsec_notify->notify( $args );
-
-		} else {
-
-			$changed = $email_details[0] + $email_details[1] + $email_details[2];
-
-			if ( $changed > 0 ) {
-				$itsec_notify->register_file_change();
-			}
-
+		if ( ! $changed ) {
+			return;
 		}
 
+		$nc = ITSEC_Core::get_notification_center();
+
+		if ( $nc->is_notification_enabled( 'digest' ) ) {
+			$nc->enqueue_data( 'digest', array( 'type' => 'file-change' ) );
+		}
+
+		if ( $nc->is_notification_enabled( 'file-change' ) ) {
+			$mail = $this->generate_notification_email( $email_details );
+			$nc->send( 'file-change', $mail );
+		}
 	}
 
 	/**
-	 * Set HTML content type for email
+	 * Generate the notification email.
 	 *
-	 * This filter allows for the content type of the file change notification emails to be set to
-	 * HTML in order to send the tables and related data included in file change reporting.
+	 * @param array $email_details
 	 *
-	 * @since 4.0.0
-	 *
-	 * @return string html content type
+	 * @return ITSEC_Mail
 	 */
-	public function set_html_content_type() {
+	private function generate_notification_email( $email_details ) {
+		$mail = ITSEC_Core::get_notification_center()->mail();
 
-		return 'text/html';
+		$mail->add_header(
+			esc_html__( 'File Change Warning', 'better-wp-security' ),
+			sprintf( esc_html__( 'File Scan Report for %s', 'better-wp-security' ), '<b>' . date_i18n( get_option( 'date_format' ) ) . '</b>' )
+		);
+		$mail->add_text( esc_html__( 'A file (or files) on your site have been changed. Please review the report below to verify changes are not the result of a compromise.', 'better-wp-security' ) );
 
+		$mail->add_section_heading( esc_html__( 'Scan Summary', 'better-wp-security' ) );
+		$mail->add_file_change_summary( $email_details[0], $email_details[1], $email_details[2] );
+
+		$mail->add_section_heading( esc_html__( 'Scan Details', 'better-wp-security' ) );
+
+		$headers = array( esc_html__( 'File', 'better-wp-security' ), esc_html__( 'Modified', 'better-wp-security' ), esc_html__( 'File Hash', 'better-wp-security' ) );
+
+		if ( $email_details[0] ) {
+			$mail->add_large_text( esc_html__( 'Added Files', 'better-wp-security' ) );
+			$mail->add_table( $headers, $this->generate_email_rows( $email_details[3]['added'] ) );
+		}
+
+		if ( $email_details[1] ) {
+			$mail->add_large_text( esc_html__( 'Removed Files', 'better-wp-security' ) );
+			$mail->add_table( $headers, $this->generate_email_rows( $email_details[3]['removed'] ) );
+		}
+
+		if ( $email_details[2] ) {
+			$mail->add_large_text( esc_html__( 'Changed Files', 'better-wp-security' ) );
+			$mail->add_table( $headers, $this->generate_email_rows( $email_details[3]['changed'] ) );
+		}
+
+		$mail->add_footer();
+
+		return $mail;
 	}
 
+	/**
+	 * Generate email report rows for a series of files.
+	 *
+	 * @param array $files
+	 *
+	 * @return array
+	 */
+	private function generate_email_rows( $files ) {
+		$rows = array();
+
+		foreach ( $files as $item => $attr ) {
+			$time = isset( $attr['mod_date'] ) ? $attr['mod_date'] : $attr['d'];
+
+			$rows[] = array(
+				$item,
+				ITSEC_Lib::date_format_i18n_and_local_timezone( $time ),
+				isset( $attr['hash'] ) ? $attr['hash'] : $attr['h']
+			);
+		}
+
+		return $rows;
+	}
 }

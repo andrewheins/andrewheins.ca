@@ -39,6 +39,8 @@ class Generic_AdminActions_Test {
 	 */
 	function w3tc_test_redis() {
 		$servers = Util_Request::get_array( 'servers' );
+		$password   = Util_Request::get_string('password', '');
+		$dbid       = Util_Request::get_integer( 'dbid', 0 );
 
 		if ( count( $servers ) <= 0 )
 			$success = false;
@@ -48,7 +50,9 @@ class Generic_AdminActions_Test {
 			foreach ( $servers as $server ) {
 				@$cache = Cache::instance( 'redis', array(
 						'servers' => $server,
-						'persistent' => false
+						'persistent' => false,
+						'password' => $password,
+						'dbid' => $dbid
 					) );
 				if ( is_null( $cache ) )
 					$success = false;
@@ -105,32 +109,32 @@ class Generic_AdminActions_Test {
 		if ( empty( $error ) ) {
 			switch ( $engine ) {
 			case 'yuijs':
-				Minify_YUICompressor::$tempDir = Util_File::create_tmp_dir();
-				Minify_YUICompressor::$javaExecutable = $path_java;
-				Minify_YUICompressor::$jarFile = $path_jar;
+				\Minify_YUICompressor::$tempDir = Util_File::create_tmp_dir();
+				\Minify_YUICompressor::$javaExecutable = $path_java;
+				\Minify_YUICompressor::$jarFile = $path_jar;
 
-				$result = Minify_YUICompressor::testJs( $error );
+				$result = \Minify_YUICompressor::testJs( $error );
 				break;
 
 			case 'yuicss':
-				Minify_YUICompressor::$tempDir = Util_File::create_tmp_dir();
-				Minify_YUICompressor::$javaExecutable = $path_java;
-				Minify_YUICompressor::$jarFile = $path_jar;
+				\Minify_YUICompressor::$tempDir = Util_File::create_tmp_dir();
+				\Minify_YUICompressor::$javaExecutable = $path_java;
+				\Minify_YUICompressor::$jarFile = $path_jar;
 
-				$result = Minify_YUICompressor::testCss( $error );
+				$result = \Minify_YUICompressor::testCss( $error );
 				break;
 
 			case 'ccjs':
-				Minify_ClosureCompiler::$tempDir = Util_File::create_tmp_dir();
-				Minify_ClosureCompiler::$javaExecutable = $path_java;
-				Minify_ClosureCompiler::$jarFile = $path_jar;
+				\Minify_ClosureCompiler::$tempDir = Util_File::create_tmp_dir();
+				\Minify_ClosureCompiler::$javaExecutable = $path_java;
+				\Minify_ClosureCompiler::$jarFile = $path_jar;
 
-				$result = Minify_ClosureCompiler::test( $error );
+				$result = \Minify_ClosureCompiler::test( $error );
 				break;
 
 			case 'googleccjs':
 
-				$result = Minify_JS_ClosureCompiler::test( $error );
+				$result = \Minify_JS_ClosureCompiler::test( $error );
 				break;
 
 			default:
@@ -204,7 +208,9 @@ class Generic_AdminActions_Test {
 
 		$config = Dispatcher::config();
 		$key = $config->get_string( 'widget.pagespeed.key' );
-		$w3_pagespeed = new PageSpeed_Api( $key );
+		$ref = $config->get_string( 'widget.pagespeed.key.restrict.referrer' );
+
+ 		$w3_pagespeed = new PageSpeed_Api( $key, $ref );
 
 		$results = $w3_pagespeed->analyze( get_home_url() );
 		include W3TC_INC_POPUP_DIR . '/pagespeed_results.php';

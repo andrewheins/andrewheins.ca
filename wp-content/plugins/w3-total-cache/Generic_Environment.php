@@ -22,7 +22,18 @@ class Generic_Environment {
 		$this->add_index_to_folders();
 
 		if ( count( $exs->exceptions() ) <= 0 ) {
-			$this->notify_no_config_present( $config, $exs );
+			// save actual version of config is it's built on legacy configs
+			$f = ConfigUtil::is_item_exists( 0, false );
+			$f2 = file_exists( Config::util_config_filename_legacy_v2( 0, false ) );
+
+			$c = Dispatcher::config_master();
+			if ( ( $f || $f2 ) && $c->is_compiled() ) {
+				$c->save();
+				$f = ConfigUtil::is_item_exists( 0, false );
+			}
+
+			if ( $f && $f2 )
+				@unlink( Config::util_config_filename_legacy_v2( 0, false ) );
 		}
 
 		if ( count( $exs->exceptions() ) > 0 )
@@ -121,9 +132,12 @@ class Generic_Environment {
 	private function create_required_folders( $exs ) {
 		// folders that we create if not exists
 		$directories = array(
-			W3TC_CACHE_DIR,
-			W3TC_CONFIG_DIR
+			W3TC_CACHE_DIR
 		);
+
+		if ( !(defined( 'W3TC_CONFIG_DATABASE' ) && W3TC_CONFIG_DATABASE ) ) {
+			$directories[] = W3TC_CONFIG_DIR;
+		}
 
 		foreach ( $directories as $directory ) {
 			try{
@@ -163,31 +177,6 @@ class Generic_Environment {
 			if ( is_dir( $dir ) && !file_exists( $dir . '/index.html' ) )
 				@file_put_contents( $dir . '/index.html', '' );
 		}
-	}
-
-	/**
-	 * Check config file
-	 *
-	 * @param Config  $config
-	 * @param Util_Environment_Exceptions $exs
-	 */
-	private function notify_no_config_present( $config, $exs ) {
-		if ( ( file_exists( Config::util_config_filename( 0, false ) ) ||
-				file_exists( Config::util_config_filename_legacy( 0, false ) ) )
-			&& $config->get_integer( 'common.instance_id', 0 ) != 0 )
-			return;
-
-		$onclick = 'document.location.href=\'' .
-			addslashes( wp_nonce_url(
-				'admin.php?page=w3tc_general&w3tc_save_options', 'w3tc' ) ) .
-			'\';';
-		$button = '<input type="button" class="button w3tc" ' .
-			'value="save the settings" onclick="' . $onclick . '" />';
-
-		$exs->push( new Util_Environment_Exception( '<strong>W3 Total Cache:</strong> ' .
-				'Default settings are in use. The configuration file could ' .
-				'not be read or doesn\'t exist. Please ' . $button .
-				' to create the file.' ) );
 	}
 
 	/**

@@ -25,6 +25,14 @@ class Cache_Redis extends Cache_Base {
 		$this->_servers = (array)$config['servers'];
 		$this->_password = $config['password'];
 		$this->_dbid = $config['dbid'];
+
+		// when disabled - no extra requests are made to obtain key version,
+		// but flush operations not supported as a result
+		// group should be always empty
+		if ( isset( $config['key_version_mode'] ) &&
+			$config['key_version_mode'] == 'disabled' ) {
+			$this->_key_version[''] = 1;
+		}
 	}
 
 	/**
@@ -148,12 +156,12 @@ class Cache_Redis extends Cache_Base {
 	}
 
 	/**
-	 * Key to delete, deletes .old and primary if exists.
+	 * Key to delete, deletes _old and primary if exists.
 	 *
 	 * @param unknown $key
 	 * @return bool
 	 */
-	function hard_delete( $key ) {
+	function hard_delete( $key, $group = '' ) {
 		$storage_key = $this->get_item_key( $key );
 		$accessor = $this->_get_accessor( $storage_key );
 		if ( is_null( $accessor ) )
@@ -325,14 +333,16 @@ class Cache_Redis extends Cache_Base {
 
 				if ( substr( $server, 0, 5 ) == 'unix:' ) {
 					if ( $this->_persistent )
-						$accessor->pconnect( trim( substr( $server, 5 ) ) );
+						$accessor->pconnect( trim( substr( $server, 5 ) ),
+							null, null, $this->_instance_id . '_' . $this->_dbid );
 					else
 						$accessor->connect( trim( substr( $server, 5 ) ) );
 				} else {
 					list( $ip, $port ) = explode( ':', $server );
 
 					if ( $this->_persistent )
-						$accessor->pconnect( trim( $ip ), (integer) trim( $port ) );
+						$accessor->pconnect( trim( $ip ), (integer) trim( $port ),
+							null, $this->_instance_id . '_' . $this->_dbid );
 					else
 						$accessor->connect( trim( $ip ), (integer) trim( $port ) );
 				}

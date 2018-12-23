@@ -3,17 +3,17 @@
 final class ITSEC_Database_Prefix_Utility {
 	public static function change_database_prefix() {
 		global $wpdb;
-		
-		
-		require_once( $GLOBALS['itsec_globals']['plugin_dir'] . 'core/lib/class-itsec-lib-config-file.php' );
-		require_once( $GLOBALS['itsec_globals']['plugin_dir'] . 'core/lib/class-itsec-lib-file.php' );
-		
+
+
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-config-file.php' );
+		require_once( ITSEC_Core::get_core_dir() . '/lib/class-itsec-lib-file.php' );
+
 		$response = array(
 			'errors'     => array(),
 			'new_prefix' => false,
 		);
-		
-		
+
+
 		//suppress error messages due to timing
 //		error_reporting( 0 );
 //		@ini_set( 'display_errors', 0 );
@@ -39,40 +39,38 @@ final class ITSEC_Database_Prefix_Utility {
 			//complete with underscore
 			$new_prefix .= '_';
 
-			$new_prefix = esc_sql( $new_prefix ); //just be safe
-
-			$check_prefix = $wpdb->get_results( 'SHOW TABLES LIKE "' . $new_prefix . '%";', ARRAY_N ); //if there are no tables with that prefix in the database set checkPrefix to false
+			$check_prefix = $wpdb->get_results( $wpdb->prepare( 'SHOW TABLES LIKE %s;', $new_prefix . '%' ), ARRAY_N ); //if there are no tables with that prefix in the database set checkPrefix to false
 
 		}
 
 
 		$config_file_path = ITSEC_Lib_Config_File::get_wp_config_file_path();
 		$config = ITSEC_Lib_File::read( $config_file_path );
-		
+
 		if ( is_wp_error( $config ) ) {
 			/* translators: 1: Specific error details */
-			$response['errors'][] = new WP_Error( $confix->get_error_code(), sprintf( __( 'Unable to read the <code>wp-config.php</code> file in order to update the Database Prefix. Error details as follows: %1$s', 'better-wp-security' ), $config->get_error_message() ) );
+			$response['errors'][] = new WP_Error( $config->get_error_code(), sprintf( __( 'Unable to read the <code>wp-config.php</code> file in order to update the Database Prefix. Error details as follows: %1$s', 'better-wp-security' ), $config->get_error_message() ) );
 			return $response;
 		}
-		
-		
+
+
 		$regex = '/(\$table_prefix\s*=\s*)([\'"]).+?\\2(\s*;)/';
 		$config = preg_replace( $regex, "\${1}'$new_prefix'\${3}", $config );
-		
+
 		$write_result = ITSEC_Lib_File::write( $config_file_path, $config );
-		
+
 		if ( is_wp_error( $write_result ) ) {
 			/* translators: 1: Specific error details */
-			$response['errors'][] = new WP_Error( $confix->get_error_code(), sprintf( __( 'Unable to update the <code>wp-config.php</code> file in order to update the Database Prefix. Error details as follows: %1$s', 'better-wp-security' ), $config->get_error_message() ) );
+			$response['errors'][] = new WP_Error( $write_result->get_error_code(), sprintf( __( 'Unable to update the <code>wp-config.php</code> file in order to update the Database Prefix. Error details as follows: %1$s', 'better-wp-security' ), $config->get_error_message() ) );
 			return $response;
 		}
-		
-		
+
+
 		$response['new_prefix'] = $new_prefix;
 
 
 
-		$tables = $wpdb->get_results( 'SHOW TABLES LIKE "' . $wpdb->base_prefix . '%"', ARRAY_N ); //retrieve a list of all tables in the DB
+		$tables = $wpdb->get_results( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->base_prefix . '%' ), ARRAY_N ); //retrieve a list of all tables in the DB
 
 		//Rename each table
 		foreach ( $tables as $table ) {
@@ -113,7 +111,7 @@ final class ITSEC_Database_Prefix_Utility {
 
 		}
 
-		$rows = $wpdb->get_results( 'SELECT * FROM `' . $new_prefix . 'usermeta`' ); //get all rows in usermeta
+		$rows = $wpdb->get_results( "SELECT * FROM `{$new_prefix}usermeta`" ); //get all rows in usermeta
 
 		//update all prefixes in usermeta
 		foreach ( $rows as $row ) {
@@ -122,7 +120,7 @@ final class ITSEC_Database_Prefix_Utility {
 
 				$pos = $new_prefix . substr( $row->meta_key, strlen( $wpdb->base_prefix ), strlen( $row->meta_key ) );
 
-				$result = $wpdb->query( 'UPDATE `' . $new_prefix . 'usermeta` SET meta_key="' . $pos . '" WHERE meta_key= "' . $row->meta_key . '" LIMIT 1;' );
+				$result = $wpdb->query( $wpdb->prepare( "UPDATE `{$new_prefix}usermeta` SET meta_key = %s WHERE meta_key = %s LIMIT 1", $pos, $row->meta_key ) );
 
 				if ( $result == false ) {
 

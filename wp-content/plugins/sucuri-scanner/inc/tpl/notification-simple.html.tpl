@@ -1,12 +1,9 @@
-Subject: %%SUCURI.Subject%%
 
-Login Info:
-Time: %%SUCURI.Time%%
+Event: %%SUCURI.Subject%%
+Website: http://%%SUCURI.Website%%
+IP Address: %%SUCURI.RemoteAddress%%
+Reverse IP: %%SUCURI.ReverseAddress%%
+Date/Time: %%SUCURI.Time%%
 %%SUCURI.User%%
 
-Website Info:
-Site: %%SUCURI.Website%%
-IP Address: %%SUCURI.RemoteAddress%%
-
-Notification:
-%%SUCURI.Message%%
+Message: %%SUCURI.Message%%

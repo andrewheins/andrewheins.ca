@@ -16,10 +16,19 @@ final class ITSEC_Admin_Page_Loader {
 		add_action( 'wp_ajax_itsec_settings_page', array( $this, 'handle_ajax_request' ) );
 		add_action( 'wp_ajax_itsec_logs_page', array( $this, 'handle_ajax_request' ) );
 		add_action( 'wp_ajax_itsec_help_page', array( $this, 'handle_ajax_request' ) );
+		add_action( 'wp_ajax_itsec_debug_page', array( $this, 'handle_ajax_request' ) );
 		add_action( 'wp_ajax_itsec-set-user-setting', array( $this, 'handle_user_setting' ) );
 
 		// Filters for validating user settings
 		add_filter( 'itsec-user-setting-valid-itsec-settings-view', array( $this, 'validate_view' ), null, 2 );
+	}
+
+	public function add_scripts() {
+
+	}
+
+	public function add_styles() {
+		wp_enqueue_style( 'itsec-settings-page-style', plugins_url( 'css/style.css', __FILE__ ), array(), ITSEC_Core::get_plugin_build() );
 	}
 
 	public function add_admin_pages() {
@@ -29,10 +38,17 @@ final class ITSEC_Admin_Page_Loader {
 		add_menu_page( __( 'Settings', 'better-wp-security' ), __( 'Security', 'better-wp-security' ), $capability, 'itsec', array( $this, 'show_page' ) );
 		$page_refs[] = add_submenu_page( 'itsec', __( 'iThemes Security Settings', 'better-wp-security' ), __( 'Settings', 'better-wp-security' ), $capability, 'itsec', array( $this, 'show_page' ) );
 		$page_refs[] = add_submenu_page( 'itsec', '', __( 'Security Check', 'better-wp-security' ), $capability, 'itsec-security-check', array( $this, 'show_page' ) );
+
+		$page_refs = apply_filters( 'itsec-admin-page-refs', $page_refs, $capability, array( $this, 'show_page' ) );
+
 		$page_refs[] = add_submenu_page( 'itsec', __( 'iThemes Security Logs', 'better-wp-security' ), __( 'Logs', 'better-wp-security' ), $capability, 'itsec-logs', array( $this, 'show_page' ) );
 
 		if ( ! ITSEC_Core::is_pro() ) {
 			$page_refs[] = add_submenu_page( 'itsec', '', '<span style="color:#2EA2CC">' . __( 'Go Pro', 'better-wp-security' ) . '</span>', $capability, 'itsec-go-pro', array( $this, 'show_page' ) );
+		}
+
+		if ( defined( 'ITSEC_DEBUG' ) && ITSEC_DEBUG ) {
+			$page_refs[] = add_submenu_page( 'itsec', __( 'iThemes Security Debug', 'better-wp-security' ), __( 'Debug' ), $capability, 'itsec-debug', array( $this, 'show_page' ) );
 		}
 
 		foreach ( $page_refs as $page_ref ) {
@@ -65,6 +81,9 @@ final class ITSEC_Admin_Page_Loader {
 	}
 
 	public function load() {
+		add_action( 'admin_print_scripts', array( $this, 'add_scripts' ) );
+		add_action( 'admin_print_styles', array( $this, 'add_styles' ) );
+
 		$this->load_file( 'page-%s.php' );
 	}
 
@@ -90,10 +109,17 @@ final class ITSEC_Admin_Page_Loader {
 		$id = $this->get_page_id();
 
 		if ( empty( $id ) ) {
-			return;
+			if ( isset( $GLOBALS['pagenow'] ) && 'admin.php' === $GLOBALS['pagenow'] && isset( $_GET['page'] ) && 'itsec-' === substr( $_GET['page'], 0, 6 ) ) {
+				$id = substr( $_GET['page'], 6 );
+			} else {
+				return;
+			}
 		}
 
+		$id = str_replace( '_', '-', $id );
+
 		$file = dirname( __FILE__ ) . '/' . sprintf( $file, $id );
+		$file = apply_filters( "itsec-admin-page-file-path-$id", $file );
 
 		if ( is_file( $file ) ) {
 			require_once( $file );

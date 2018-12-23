@@ -5,7 +5,7 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 define( 'W3TC', true );
-define( 'W3TC_VERSION', '0.9.5.1' );
+define( 'W3TC_VERSION', '0.9.7' );
 define( 'W3TC_POWERED_BY', 'W3 Total Cache' );
 define( 'W3TC_EMAIL', 'w3tc@w3-edge.com' );
 define( 'W3TC_TEXT_DOMAIN', 'w3-total-cache' );
@@ -15,18 +15,20 @@ define( 'W3TC_FEED_URL', 'http://feeds.feedburner.com/W3TOTALCACHE' );
 define( 'W3TC_NEWS_FEED_URL', 'http://feeds.feedburner.com/W3EDGE' );
 define( 'W3TC_README_URL', 'http://plugins.svn.wordpress.org/w3-total-cache/trunk/readme.txt' );
 define( 'W3TC_SUPPORT_US_PRODUCT_URL', 'https://www.w3-edge.com/products/w3-total-cache/' );
-define( 'W3TC_SUPPORT_US_RATE_URL', 'http://wordpress.org/support/view/plugin-reviews/w3-total-cache?rate=5#postform' );
-define( 'W3TC_SUPPORT_US_TIMEOUT', 2592000 );   // 30 days
+define( 'W3TC_SUPPORT_US_RATE_URL', 'https://wordpress.org/support/plugin/w3-total-cache/reviews/#new-post' );
 define( 'W3TC_SUPPORT_US_TWEET', 'YES! I optimized the user experience of my website with the W3 Total Cache #WordPress #plugin by @w3edge! http://bit.ly/TeSBL3' );
 define( 'W3TC_EDGE_TIMEOUT', 7 * 24 * 60 * 60 );
 define( 'W3TC_SUPPORT_REQUEST_URL', 'https://www.w3-edge.com/w3tc-support/extra' );
 define( 'W3TC_SUPPORT_SERVICES_URL', 'https://www.w3-edge.com/w3tc/premium-widget.json' );
+define( 'W3TC_FAQ_URL', 'https://github.com/Auctollo/w3-total-cache-public/wiki/FAQ' );
 define( 'W3TC_TRACK_URL', 'https://www.w3-edge.com/w3tc/track/' );
 define( 'W3TC_MAILLINGLIST_SIGNUP_URL', 'https://www.w3-edge.com/w3tc/emailsignup/' );
 define( 'NEWRELIC_SIGNUP_URL', 'http://bit.ly/w3tc-partner-newrelic-signup' );
 define( 'MAXCDN_SIGNUP_URL', 'http://bit.ly/w3tc-cdn-maxcdn-create-account' );
 define( 'MAXCDN_AUTHORIZE_URL', 'http://bit.ly/w3tc-cdn-maxcdn-authorize' );
 define( 'NETDNA_AUTHORIZE_URL', 'https://cp.netdna.com/i/w3tc' );
+define( 'STACKPATH_SIGNUP_URL', 'http://bit.ly/w3tc-cdn-stackpath-create-account' );
+define( 'STACKPATH_AUTHORIZE_URL', 'http://bit.ly/w3tc-cdn-stackpath-authorize' );
 define( 'GOOGLE_DRIVE_AUTHORIZE_URL', 'https://www.w3-edge.com/w3tcoa/google-drive/' );
 
 // this is the URL our updater / license checker pings. This should be the URL of the site with EDD installed
@@ -38,7 +40,9 @@ define( 'EDD_W3EDGE_W3TC_NAME', 'W3 Total Cache Pro: Annual Subscription' );
 
 define( 'W3TC_WIN', ( strtoupper( substr( PHP_OS, 0, 3 ) ) === 'WIN' ) );
 
-defined( 'W3TC_DIR' ) || define( 'W3TC_DIR', realpath( dirname( __FILE__ ) ) );
+if ( !defined( 'W3TC_DIR' ) )
+	define( 'W3TC_DIR', realpath( dirname( __FILE__ ) ) );
+
 define( 'W3TC_FILE', 'w3-total-cache/w3-total-cache.php' );
 define( 'W3TC_INC_DIR', W3TC_DIR . '/inc' );
 define( 'W3TC_INC_WIDGET_DIR', W3TC_INC_DIR. '/widget' );
@@ -52,20 +56,29 @@ define( 'W3TC_INSTALL_DIR', W3TC_DIR . '/wp-content' );
 define( 'W3TC_INSTALL_MINIFY_DIR', W3TC_INSTALL_DIR . '/w3tc/min' );
 define( 'W3TC_LANGUAGES_DIR', W3TC_DIR . '/languages' );
 
-define( 'W3TC_CACHE_DIR', WP_CONTENT_DIR . '/cache' );
-define( 'W3TC_CONFIG_DIR', WP_CONTENT_DIR . '/w3tc-config' );
-define( 'W3TC_CACHE_MINIFY_DIR', W3TC_CACHE_DIR  . '/minify' );
-define( 'W3TC_CACHE_PAGE_ENHANCED_DIR', W3TC_CACHE_DIR  . '/page_enhanced' );
-define( 'W3TC_CACHE_TMP_DIR', W3TC_CACHE_DIR . '/tmp' );
-define( 'W3TC_CACHE_BLOGMAP_FILENAME', W3TC_CACHE_DIR . '/blogs.php' );
-define( 'W3TC_CACHE_FILE_EXPIRE_MAX', 2592000 );
+if ( !defined( 'WP_CONTENT_DIR' ) )
+	define( 'WP_CONTENT_DIR', realpath( W3TC_DIR . '/../..' ) );
 
-defined( 'WP_CONTENT_DIR' ) || define( 'WP_CONTENT_DIR', realpath( W3TC_DIR . '/../..' ) );
+if ( !defined( 'W3TC_CACHE_DIR' ) )
+	define( 'W3TC_CACHE_DIR', WP_CONTENT_DIR . '/cache' );
+if ( !defined( 'W3TC_CONFIG_DIR' ) )
+	define( 'W3TC_CONFIG_DIR', WP_CONTENT_DIR . '/w3tc-config' );
+if ( !defined( 'W3TC_CACHE_MINIFY_DIR' ) )
+	define( 'W3TC_CACHE_MINIFY_DIR', W3TC_CACHE_DIR  . '/minify' );
+if ( !defined( 'W3TC_CACHE_PAGE_ENHANCED_DIR' ) )
+	define( 'W3TC_CACHE_PAGE_ENHANCED_DIR', W3TC_CACHE_DIR  . '/page_enhanced' );
+if ( !defined( 'W3TC_CACHE_TMP_DIR' ) )
+	define( 'W3TC_CACHE_TMP_DIR', W3TC_CACHE_DIR . '/tmp' );
+if ( !defined( 'W3TC_CACHE_BLOGMAP_FILENAME' ) )
+	define( 'W3TC_CACHE_BLOGMAP_FILENAME', W3TC_CACHE_DIR . '/blogs.php' );
+if ( !defined( 'W3TC_CACHE_FILE_EXPIRE_MAX' ) )
+	define( 'W3TC_CACHE_FILE_EXPIRE_MAX', 2592000 );
 
 define( 'W3TC_CDN_COMMAND_UPLOAD', 1 );
 define( 'W3TC_CDN_COMMAND_DELETE', 2 );
 define( 'W3TC_CDN_COMMAND_PURGE', 3 );
 define( 'W3TC_CDN_TABLE_QUEUE', 'w3tc_cdn_queue' );
+define( 'W3TC_CDN_TABLE_PATHMAP', 'w3tc_cdn_pathmap' );
 
 define( 'W3TC_INSTALL_FILE_ADVANCED_CACHE', W3TC_INSTALL_DIR . '/advanced-cache.php' );
 define( 'W3TC_INSTALL_FILE_DB', W3TC_INSTALL_DIR . '/db.php' );
@@ -102,8 +115,13 @@ define( 'W3TC_MARKER_END_CDN', '# END W3TC CDN' );
 define( 'W3TC_MARKER_END_NEW_RELIC_CORE', '# END W3TC New Relic core' );
 
 
-if ( !defined( 'W3TC_EXTENSION_DIR' ) )
+if ( !defined( 'W3TC_EXTENSION_DIR' ) ) {
 	define( 'W3TC_EXTENSION_DIR', ( defined( 'WP_PLUGIN_DIR' ) ? WP_PLUGIN_DIR : WP_CONTENT_DIR . '/plugins' ) );
+}
+
+if ( !defined( 'W3TC_WP_JSON_URI' ) ) {
+	define( 'W3TC_WP_JSON_URI', '/wp-json/' );
+}
 
 @ini_set( 'pcre.backtrack_limit', 4194304 );
 @ini_set( 'pcre.recursion_limit', 4194304 );
@@ -143,6 +161,10 @@ function w3tc_class_autoload( $class ) {
 		if ( file_exists( $filePath ) )
 			require $filePath;
 		return;
+	} elseif ( substr( $class, 0, 24 ) == 'w3tc_tubalmartin\\CssMin\\' ) {
+		$base = W3TC_LIB_DIR . DIRECTORY_SEPARATOR . 'Minify' . DIRECTORY_SEPARATOR .
+			'YUI-CSS-compressor-PHP-port-4.1.0' . DIRECTORY_SEPARATOR;
+			$class = substr( $class, 24 );
 	}
 
 	if ( !is_null( $base ) ) {
@@ -157,8 +179,8 @@ function w3tc_class_autoload( $class ) {
 				require $filename;
 			} else {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					echo 'Attempt to create object of class ' . 
-						$class . ' has been made, but file ' . 
+					echo 'Attempt to create object of class ' .
+						$class . ' has been made, but file ' .
 						$filename . ' doesnt exists';
 					debug_print_backtrace();
 				}
@@ -183,40 +205,57 @@ spl_autoload_register( 'w3tc_class_autoload' );
  * !!! NOTICE !!!
  */
 function w3tc_config() {
+	/*
+	 * Some plugins make incorrect decisions based on configuration
+	 * and force to disable modules working otherwise or
+	 * adds notices on each wp-admin page without ability to remove it.
+	 * By defining W3TC_CONFIG_HIDE you may still use w3tc configuration you like.
+	 */
+	if ( defined( 'W3TC_CONFIG_HIDE' ) && W3TC_CONFIG_HIDE )
+		return new W3_Config();
+
 	$config = \W3TC\Dispatcher::config();
 	return $config;
 }
 
 /**
- * Shortcut for url varnish flush
+ * Purges/Flushes everything
  */
-function w3tc_flush_all() {
+function w3tc_flush_all( $extras = null ) {
 	$o = \W3TC\Dispatcher::component( 'CacheFlush' );
-	$o->flush_all();
+	$o->flush_all( $extras );
 }
 
 /**
  * Purges/Flushes post page
  */
-function w3tc_flush_post( $post_id ) {
+function w3tc_flush_post( $post_id, $extras = null ) {
 	$o = \W3TC\Dispatcher::component( 'CacheFlush' );
-	$o->flush_post( $post_id );
+	$o->flush_post( $post_id, $extras );
 }
 
 /**
  * Purges/Flushes all posts
  */
-function w3tc_flush_posts() {
+function w3tc_flush_posts( $extras = null ) {
 	$o = \W3TC\Dispatcher::component( 'CacheFlush' );
-	$o->flush_posts();
+	$o->flush_posts( $extras );
 }
 
 /**
  * Purges/Flushes url
  */
-function w3tc_flush_url( $url ) {
+function w3tc_flush_url( $url, $extras = null ) {
 	$o = \W3TC\Dispatcher::component( 'CacheFlush' );
-	$o->flush_url( $url );
+	$o->flush_url( $url, $extras );
+}
+
+/**
+ * Purges/Flushes separate cache group
+ */
+function w3tc_flush_group( $group, $extras = null ) {
+	$o = \W3TC\Dispatcher::component( 'CacheFlush' );
+	$o->flush_group( $group, $extras );
 }
 
 
@@ -240,6 +279,17 @@ function w3tc_pgcache_flush() {
  */
 function w3tc_pgcache_flush_post( $post_id ) {
 	return w3tc_flush_post( $post_id );
+}
+
+/**
+ * deprecated
+ * Shortcut for page post cache flush by url
+ *
+ * @param integer $url
+ * @return boolean
+ */
+function w3tc_pgcache_flush_url( $url ) {
+	return w3tc_flush_url( $url );
 }
 
 /**
@@ -305,7 +355,8 @@ function w3tc_minify_script_group( $location ) {
 	$o = \W3TC\Dispatcher::component( 'Minify_Plugin' );
 	$o->printed_scripts[] = $location;
 
-	echo $o->get_script_group( $location );
+	$r = $o->get_script_group( $location );
+	echo $r['body'];
 }
 
 /**
@@ -319,7 +370,8 @@ function w3tc_minify_style_group( $location ) {
 	$o = \W3TC\Dispatcher::component( 'Minify_Plugin' );
 	$o->printed_styles[] = $location;
 
-	echo $o->get_style_group( $location );
+	$r = $o->get_style_group( $location );
+	echo $r['body'];
 }
 
 /**
@@ -344,7 +396,8 @@ function w3tc_minify_script_custom( $files, $blocking = true ) {
  */
 function w3tc_minify_style_custom( $files ) {
 	$o = \W3TC\Dispatcher::component( 'Minify_Plugin' );
-	echo $o->get_style_custom( $files );
+	$r = $o->get_style_custom( $files );
+	echo $r['body'];
 }
 
 /**
@@ -497,14 +550,38 @@ function w3tc_opcache_flush_file( $file, $http = false ) {
 
 /**
  * Deprecated. Retained for 3rd parties that used it. see w3tc_config()
+ *
+ * Some plugins make incorrect decisions based on configuration
+ * and force to disable modules working otherwise or
+ * adds notices on each wp-admin page without ability to remove it.
+ * By defining W3TC_CONFIG_HIDE you may still use w3tc configuration you like.
  */
-class W3_Config extends \W3TC\Config {
-    public function __construct( $master = false, $blog_id = null ) {
-    	if ( $master )
-    		$blog_id = 0;
+if ( defined( 'W3TC_CONFIG_HIDE' ) && W3TC_CONFIG_HIDE ) {
+	class W3_Config {
+	    public function __construct( $master = false, $blog_id = null ) {
+	    }
 
-        return parent::__construct($blog_id);
-    }
+		public function get_string( $key, $default = '', $trim = true ) {
+			return '';
+		}
+
+    	public function get_integer( $key, $default = 0 ) {
+			return 0;
+    	}
+
+		public function get_boolean( $key, $default = false ) {
+			return false;
+    	}
+	}
+} else {
+	class W3_Config extends \W3TC\Config {
+	    public function __construct( $master = false, $blog_id = null ) {
+	    	if ( $master )
+	    		$blog_id = 0;
+
+	        return parent::__construct($blog_id);
+	    }
+	}
 }
 
 /**
@@ -527,8 +604,12 @@ Deprecated. Retained for 3rd parties that use it. see w3tc_config()
 function w3_instance( $class ) {
     $legacy_class_name = null;
 
-    if ( $class == 'W3_Config' )
+    if ( $class == 'W3_Config' ) {
+    	if ( defined( 'W3TC_CONFIG_HIDE' ) && W3TC_CONFIG_HIDE )
+    		return new W3_Config();
+
        	$legacy_class_name = 'Config';
+    }
     elseif ( $class == 'W3_ObjectCacheBridge' )
         $legacy_class_name = 'ObjectCache_WpObjectCache';
     elseif ( $class == 'W3_PgCache' )

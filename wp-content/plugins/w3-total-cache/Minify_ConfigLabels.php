@@ -35,7 +35,7 @@ class Minify_ConfigLabels {
 				'minify.reject.files.js' => __( 'Never minify the following <acronym title="JavaScript">JS</acronym> files:', 'w3-total-cache' ),
 				'minify.reject.files.css' => __( 'Never minify the following <acronym title="Cascading Style Sheet">CSS</acronym> files:', 'w3-total-cache' ),
 				'minify.reject.ua' => __( 'Rejected user agents:', 'w3-total-cache' ),
-				'minify.cache.files' => __( 'Include external files/libaries:', 'w3-total-cache' ),
+				'minify.cache.files' => __( 'Include external files/libraries:', 'w3-total-cache' ),
 				// options->minify->ccjs
 				'minify.ccjs.options.formatting' => __( 'Pretty print', 'w3-total-cache' ),
 				// options->minify->ccjs2
@@ -51,8 +51,10 @@ class Minify_ConfigLabels {
 				'minify.csstidy.options.compress_font-weight' => __( 'Compress font-weight', 'w3-total-cache' ),
 				'minify.csstidy.options.lowercase_s' => __( 'Lowercase selectors', 'w3-total-cache' ),
 				'minify.csstidy.options.remove_last_;' => __( 'Remove last ;', 'w3-total-cache' ),
+				'minify.csstidy.options.remove_space_before_important' => __( 'Remove space before !important', 'w3-total-cache' ),
 				'minify.csstidy.options.sort_properties' => __( 'Sort Properties', 'w3-total-cache' ),
 				'minify.csstidy.options.sort_selectors' => __( 'Sort Selectors (caution)', 'w3-total-cache' ),
+				'minify.csstidy.options.discard_invalid_selectors' => __( 'Discard invalid selectors', 'w3-total-cache' ),
 				'minify.csstidy.options.discard_invalid_properties' => __( 'Discard invalid properties', 'w3-total-cache' ),
 				'minify.csstidy.options.preserve_css' => __( 'Preserve CSS', 'w3-total-cache' ),
 				'minify.csstidy.options.timestamp' => __( 'Add timestamp', 'w3-total-cache' ),

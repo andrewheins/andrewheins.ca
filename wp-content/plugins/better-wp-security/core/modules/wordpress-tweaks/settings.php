@@ -13,11 +13,13 @@ final class ITSEC_Wordpress_Tweaks_Settings extends ITSEC_Settings {
 			'file_editor'                 => true,
 			'disable_xmlrpc'              => 0,
 			'allow_xmlrpc_multiauth'      => false,
-			'safe_jquery'                 => false,
+			'rest_api'                    => 'default-access',
 			'login_errors'                => false,
 			'force_unique_nicename'       => false,
 			'disable_unused_author_pages' => false,
-			'jquery_version'              => '',
+			'block_tabnapping'            => false,
+			'valid_user_login_type'       => 'both',
+			'patch_thumb_file_traversal'  => true,
 		);
 	}
 }

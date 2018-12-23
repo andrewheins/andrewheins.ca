@@ -14,21 +14,20 @@ class Cdn_Util {
 				'att',
 				'azure',
 				'cf',
-				'cloudfront_fsd',
 				'cf2',
 				'cotendo',
 				'edgecast',
-				'maxcdn_fsd',
 				'ftp',
 				'google_drive',
 				'highwinds',
+				'limelight',
 				'maxcdn',
 				'mirror',
-				'netdna',
 				'rscf',
 				'rackspace_cdn',
 				's3',
 				's3_compatible',
+				'stackpath',
 			) );
 	}
 
@@ -40,25 +39,13 @@ class Cdn_Util {
 	 */
 	static public function is_engine_mirror( $engine ) {
 		return in_array( $engine, array(
-				'mirror', 'netdna', 'maxcdn', 'cotendo', 'cf2', 'akamai',
-				'edgecast', 'att', 'highwinds', 'rackspace_cdn' ) );
-	}
-
-	/**
-	 * Returns true if CDN engine is mirror
-	 *
-	 * @param string  $engine
-	 * @return bool
-	 */
-	static public function is_engine_fsd( $engine ) {
-		return in_array( $engine, array(
-				'cloudfront_fsd',
-				'maxcdn_fsd'
-			) );
+				'mirror', 'maxcdn', 'cotendo', 'cf2', 'akamai',
+				'edgecast', 'att', 'highwinds', 'limelight', 'rackspace_cdn',
+				'stackpath' ) );
 	}
 
 	static public function is_engine_push( $engine ) {
-		return !self::is_engine_mirror( $engine ) && !self::is_engine_fsd( $engine );
+		return !self::is_engine_mirror( $engine );
 	}
 
 	/**
@@ -72,10 +59,10 @@ class Cdn_Util {
 				'att',
 				'cotendo',
 				'edgecast',
-				'maxcdn_fsd',
 				'highwinds',
+				'limelight',
 				'maxcdn',
-				'netdna',
+				'stackpath',
 			) );
 	}
 
@@ -92,17 +79,16 @@ class Cdn_Util {
 				'azure',
 				'cf',
 				'cf2',
-				'cloudfront_fsd',
 				'cotendo',
 				'edgecast',
-				'maxcdn_fsd',
 				'ftp',
 				'highwinds',
+				'limelight',
 				'maxcdn',
-				'netdna',
 				'rscf',
 				's3',
 				's3_compatible',
+				'stackpath',
 			) );
 	}
 
@@ -218,6 +204,25 @@ class Cdn_Util {
 		$file = str_replace( '{wp_content_dir}', $content_dir, $file );
 		$file = str_replace( '{plugins_dir}', $plugin_dir, $file );
 		$file = str_replace( '{uploads_dir}', $upload_dir, $file );
+
+		return $file;
+	}
+
+	static function replace_folder_placeholders_to_uri( $file ) {
+		static $content_uri, $plugins_uri, $uploads_uri;
+		if ( empty( $content_uri ) ) {
+			$content_uri = Util_Environment::url_to_uri( content_url() );
+			$plugins_uri = Util_Environment::url_to_uri( plugins_url() );
+
+			$upload_dir = Util_Environment::wp_upload_dir();
+			if ( isset( $upload_dir['baseurl'] ) )
+				$uploads_uri = Util_Environment::url_to_uri( $upload_dir['baseurl'] );
+			else
+				$uploads_uri = '';
+		}
+		$file = str_replace( '{wp_content_dir}', $content_uri, $file );
+		$file = str_replace( '{plugins_dir}', $plugins_uri, $file );
+		$file = str_replace( '{uploads_dir}', $uploads_uri, $file );
 
 		return $file;
 	}

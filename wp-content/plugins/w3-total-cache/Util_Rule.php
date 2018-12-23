@@ -2,23 +2,6 @@
 namespace W3TC;
 
 class Util_Rule {
-	/*
-     * Returns URI from filename/dirname
-     * Used for rules mainly since is not usable for regular URI,
-     * because wordpress adds blogname to uri making it uncompatible with
-     * directory structure
-     *
-     * @return string
-     */
-	static public function filename_to_uri( $filename ) {
-		$url = Util_Environment::filename_to_url( $filename );
-		$parsed = parse_url( $url );
-		$uri = isset( $parsed['path'] ) ? ltrim( $parsed['path'], DIRECTORY_SEPARATOR ) : '';
-		$uri = '/' . $uri;
-
-		return $uri;
-	}
-
 	/**
 	 * Check if WP permalink directives exists
 	 *
@@ -257,9 +240,15 @@ class Util_Rule {
 		if ( $data === false )
 			$data = '';
 
-		$rules_missing = !empty( $rules ) && ( strstr( Util_Rule::clean_rules( $data ), Util_Rule::clean_rules( $rules ) ) === false );
-		if ( !$rules_missing )
-			return;
+		if ( empty( $rules ) ) {
+			$rules_present = ( strpos( $data, $start ) !==  false );
+			if ( !$rules_present )
+				return;
+		} else {
+			$rules_missing = ( strstr( Util_Rule::clean_rules( $data ), Util_Rule::clean_rules( $rules ) ) === false );
+			if ( !$rules_missing )
+				return;
+		}
 
 		$replace_start = strpos( $data, $start );
 		$replace_end = strpos( $data, $end );
@@ -402,7 +391,10 @@ class Util_Rule {
 	 * @return bool
 	 */
 	static public function can_check_rules() {
-		return Util_Environment::is_apache() || Util_Environment::is_litespeed() || Util_Environment::is_nginx();
+		return Util_Environment::is_apache() ||
+			Util_Environment::is_litespeed() ||
+			Util_Environment::is_nginx() ||
+			Util_Environment::is_iis();
 	}
 
 	/**

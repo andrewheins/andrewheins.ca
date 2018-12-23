@@ -94,6 +94,13 @@ class ITSEC_Module_Settings_Page {
 	 */
 	protected $information_only = false;
 
+	/**
+	 * Set the module status to 'warning' to signal to the user it needs attention.
+	 *
+	 * @var string
+	 */
+	protected $status = '';
+
 
 	/**
 	 * Constructor.
@@ -120,7 +127,7 @@ class ITSEC_Module_Settings_Page {
 	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
-		if ( in_array( $name, array( 'id', 'title', 'description', 'type', 'pro', 'can_save', 'redraw_on_save', 'upsell', 'upsell_url', 'information_only' ) ) ) {
+		if ( in_array( $name, array( 'id', 'title', 'description', 'type', 'pro', 'can_save', 'redraw_on_save', 'upsell', 'upsell_url', 'information_only', 'status' ) ) ) {
 			return $this->$name;
 		}
 
@@ -183,7 +190,7 @@ class ITSEC_Module_Settings_Page {
 	 *
 	 * @access public
 	 *
-	 * @param object $form ITSEC_Form object used to create inputs.
+	 * @param ITSEC_Form $form ITSEC_Form object used to create inputs.
 	 */
 	public function render( $form ) {
 
@@ -224,7 +231,7 @@ class ITSEC_Module_Settings_Page {
 	 *
 	 * @access protected
 	 *
-	 * @param object $form ITSEC_Form object used to create inputs.
+	 * @param ITSEC_Form $form ITSEC_Form object used to create inputs.
 	 */
 	protected function render_settings( $form ) {
 

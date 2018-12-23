@@ -26,6 +26,9 @@ class CdnEngine_Azure extends CdnEngine_Base {
 			), $config );
 
 		parent::__construct( $config );
+
+		require_once W3TC_LIB_DIR . DIRECTORY_SEPARATOR . 'Azure' .
+			DIRECTORY_SEPARATOR . 'loader.php';
 	}
 
 	/**
@@ -37,7 +40,6 @@ class CdnEngine_Azure extends CdnEngine_Base {
 	function _init( &$error ) {
 		if ( empty( $this->_config['user'] ) ) {
 			$error = 'Empty account name.';
-
 			return false;
 		}
 
@@ -53,17 +55,18 @@ class CdnEngine_Azure extends CdnEngine_Base {
 			return false;
 		}
 
-		set_include_path( get_include_path() . PATH_SEPARATOR . W3TC_LIB_DIR );
+		try {
+			$connectionString = 'DefaultEndpointsProtocol=https;AccountName=' .
+			$this->_config['user'] .
+			';AccountKey=' . $this->_config['key'];
 
-		require_once 'Microsoft/WindowsAzure/Storage/Blob.php';
+			$this->_client = \MicrosoftAzure\Storage\Common\ServicesBuilder::getInstance()->createBlobService(
+				$connectionString);
+		} catch ( \Exception $ex ) {
+			$error = $ex->getMessage();
+			return false;
+		}
 
-		$this->_client = new \Microsoft_WindowsAzure_Storage_Blob(
-			\Microsoft_WindowsAzure_Storage::URL_CLOUD_BLOB,
-			$this->_config['user'],
-			$this->_config['key'],
-			false,
-			\Microsoft_WindowsAzure_RetryPolicy_RetryPolicyAbstract::noRetry()
-		);
 
 		return true;
 	}
@@ -87,18 +90,17 @@ class CdnEngine_Azure extends CdnEngine_Base {
 		}
 
 		foreach ( $files as $file ) {
-			if ( !is_null( $timeout_time ) && time() > $timeout_time )
-				break;
-
 			$remote_path = $file['remote_path'];
+			$local_path = $file['local_path'];
+
+			// process at least one item before timeout so that progress goes on
+			if ( !empty( $results ) ) {
+				if ( !is_null( $timeout_time ) && time() > $timeout_time ) {
+					return 'timeout';
+				}
+			}
 
 			$results[] = $this->_upload( $file, $force_rewrite );
-
-			if ( $this->_config['compression'] && $this->_may_gzip( $remote_path ) ) {
-				$file['remote_path_gzip'] = $remote_path . $this->_gzip_extension;
-
-				$results[] = $this->_upload_gzip( $file, $force_rewrite );
-			}
 		}
 
 		return !$this->_is_error( $results );
@@ -121,15 +123,18 @@ class CdnEngine_Azure extends CdnEngine_Base {
 				W3TC_CDN_RESULT_ERROR, 'Source file not found.', $file );
 		}
 
-		$md5 = @md5_file( $local_path );
+		$contents = @file_get_contents( $local_path );
+		$md5 = md5( $contents );   // @md5_file( $local_path );
 		$content_md5 = $this->_get_content_md5( $md5 );
 
 		if ( !$force_rewrite ) {
 			try {
-				$properties = $this->_client->getBlobProperties( $this->_config['container'], $remote_path );
-				$size = @filesize( $local_path );
+				$propertiesResult = $this->_client->getBlobProperties( $this->_config['container'], $remote_path );
+				$p = $propertiesResult->getProperties();
 
-				if ( $size === (int) $properties->Size && $content_md5 === $properties->ContentMd5 ) {
+				$local_size = @filesize( $local_path );
+
+				if ( $local_size == $p->getContentLength() && $content_md5 === $p->getContentMD5() ) {
 					return $this->_get_result( $local_path, $remote_path,
 						W3TC_CDN_RESULT_OK, 'File up-to-date.', $file );
 				}
@@ -138,12 +143,24 @@ class CdnEngine_Azure extends CdnEngine_Base {
 		}
 
 		$headers = $this->_get_headers( $file );
-		$headers = array_merge( $headers, array(
-				'Content-MD5' => $content_md5
-			) );
 
 		try {
-			$this->_client->putBlob( $this->_config['container'], $remote_path, $local_path, array(), null, $headers );
+			// $headers
+			$options = new \MicrosoftAzure\Storage\Blob\Models\CreateBlobOptions();
+			$options->setBlobContentMD5( $content_md5 );
+			if ( isset( $headers['Content-Length'] ) )
+				$options->setBlobContentLength( $headers['Content-Length'] );
+			if ( isset( $headers['Content-Type'] ) )
+				$options->setBlobContentType( $headers['Content-Type'] );
+			if ( isset( $headers['Content-Encoding'] ) )
+				$options->setBlobContentEncoding( $headers['Content-Encoding'] );
+			if ( isset( $headers['Content-Language'] ) )
+				$options->setBlobContentLanguage( $headers['Content-Language'] );
+			if ( isset( $headers['Cache-Control'] ) )
+				$options->setBlobCacheControl( $headers['Cache-Control'] );
+
+			$this->_client->createBlockBlob( $this->_config['container'],
+				$remote_path, $contents, $options );
 		} catch ( \Exception $exception ) {
 			return $this->_get_result( $local_path, $remote_path,
 				W3TC_CDN_RESULT_ERROR,
@@ -153,70 +170,6 @@ class CdnEngine_Azure extends CdnEngine_Base {
 
 		return $this->_get_result( $local_path, $remote_path, W3TC_CDN_RESULT_OK,
 			'OK', $file );
-	}
-
-	/**
-	 * Uploads gzipped file
-	 *
-	 * @param array   $file          CDN file array
-	 * @param bool    $force_rewrite
-	 * @return array
-	 */
-	function _upload_gzip( $file, $force_rewrite = false ) {
-		$local_path = $file['local_path'];
-		$remote_path = $file['remote_path_gzip'];
-
-		if ( !function_exists( 'gzencode' ) ) {
-			return $this->_get_result( $local_path, $remote_path,
-				W3TC_CDN_RESULT_ERROR, "GZIP library doesn't exists.", $file );
-		}
-
-		if ( !file_exists( $local_path ) ) {
-			return $this->_get_result( $local_path, $remote_path,
-				W3TC_CDN_RESULT_ERROR, 'Source file not found.', $file );
-		}
-
-		$contents = @file_get_contents( $local_path );
-
-		if ( $contents === false ) {
-			return $this->_get_result( $local_path, $remote_path,
-				W3TC_CDN_RESULT_ERROR, 'Unable to read file.', $file );
-		}
-
-		$data = gzencode( $contents );
-		$md5 = md5( $data );
-		$content_md5 = $this->_get_content_md5( $md5 );
-
-		if ( !$force_rewrite ) {
-			try {
-				$properties = $this->_client->getBlobProperties( $this->_config['container'], $remote_path );
-				$size = @filesize( $local_path );
-
-				if ( $size === (int) $properties->Size && $content_md5 === $properties->ContentMd5 ) {
-					return $this->_get_result( $local_path, $remote_path,
-						W3TC_CDN_RESULT_OK, 'File up-to-date.', $file );
-				}
-			} catch ( \Exception $exception ) {
-			}
-		}
-
-		$headers = $this->_get_headers( $file );
-		$headers = array_merge( $headers, array(
-				'Content-MD5' => $content_md5,
-				'Content-Encoding' => 'gzip'
-			) );
-
-		try {
-			$this->_client->putBlobData( $this->_config['container'], $remote_path, $data, array(), null, $headers );
-		} catch ( \Exception $exception ) {
-			return $this->_get_result( $local_path, $remote_path,
-				W3TC_CDN_RESULT_ERROR,
-				sprintf( 'Unable to put blob (%s).', $exception->getMessage() ),
-				$file );
-		}
-
-		return $this->_get_result( $local_path, $remote_path,
-			W3TC_CDN_RESULT_OK, 'OK', $file );
 	}
 
 	/**
@@ -240,7 +193,7 @@ class CdnEngine_Azure extends CdnEngine_Base {
 			$remote_path = $file['remote_path'];
 
 			try {
-				$this->_client->deleteBlob( $this->_config['container'], $remote_path );
+				$r = $this->_client->deleteBlob( $this->_config['container'], $remote_path );
 				$results[] = $this->_get_result( $local_path, $remote_path,
 					W3TC_CDN_RESULT_OK, 'OK', $file );
 			} catch ( \Exception $exception ) {
@@ -248,23 +201,6 @@ class CdnEngine_Azure extends CdnEngine_Base {
 					W3TC_CDN_RESULT_ERROR,
 					sprintf( 'Unable to delete blob (%s).', $exception->getMessage() ),
 					$file );
-			}
-
-			if ( $this->_config['compression'] ) {
-				$remote_path_gzip = $remote_path . $this->_gzip_extension;
-
-				try {
-					$this->_client->deleteBlob( $this->_config['container'], $remote_path_gzip );
-					$results[] = $this->_get_result( $local_path,
-						$remote_path_gzip, W3TC_CDN_RESULT_OK, 'OK',
-						$file );
-				} catch ( \Exception $exception ) {
-					$results[] = $this->_get_result( $local_path,
-						$remote_path_gzip, W3TC_CDN_RESULT_ERROR,
-						sprintf( 'Unable to delete blob (%s).',
-							$exception->getMessage() ),
-						$file );
-				}
 			}
 		}
 
@@ -298,8 +234,8 @@ class CdnEngine_Azure extends CdnEngine_Base {
 
 		$container = null;
 
-		foreach ( (array) $containers as $_container ) {
-			if ( $_container->Name == $this->_config['container'] ) {
+		foreach ( $containers->getContainers() as $_container ) {
+			if ( $_container->getName() == $this->_config['container'] ) {
 				$container = $_container;
 				break;
 			}
@@ -312,20 +248,41 @@ class CdnEngine_Azure extends CdnEngine_Base {
 		}
 
 		try {
-			$this->_client->putBlobData( $this->_config['container'], $string, $string );
+			$this->_client->createBlockBlob( $this->_config['container'], $string, $string );
 		} catch ( \Exception $exception ) {
-			$error = sprintf( 'Unable to put blob data (%s).', $exception->getMessage() );
-
+			$error = sprintf( 'Unable to create blob (%s).', $exception->getMessage() );
 			return false;
 		}
 
 		try {
-			$data = $this->_client->getBlobData( $this->_config['container'], $string );
+			$propertiesResult = $this->_client->getBlobProperties( $this->_config['container'], $string );
+			$p = $propertiesResult->getProperties();
+			$size = $p->getContentLength();
+			$md5 = $p->getContentMD5();
 		} catch ( \Exception $exception ) {
-			$error = sprintf( 'Unable to get blob data (%s).', $exception->getMessage() );
-
+			$error = sprintf( 'Unable to get blob properties (%s).', $exception->getMessage() );
 			return false;
 		}
+
+		if ( $size != strlen( $string ) || $this->_get_content_md5( md5( $string ) ) != $md5 ) {
+			try {
+				$this->_client->deleteBlob( $this->_config['container'], $string );
+			} catch ( \Exception $exception ) {
+			}
+
+			$error = 'Blob data properties are not equal.';
+			return false;
+		}
+
+		try {
+			$getBlob = $this->_client->getBlob( $this->_config['container'], $string );
+			$dataStream = $getBlob->getContentStream();
+			$data = stream_get_contents( $dataStream );
+		} catch ( \Exception $exception ) {
+			$error = sprintf( 'Unable to get blob data (%s).', $exception->getMessage() );
+			return false;
+		}
+
 
 		if ( $data != $string ) {
 			try {
@@ -334,7 +291,6 @@ class CdnEngine_Azure extends CdnEngine_Base {
 			}
 
 			$error = 'Blob datas are not equal.';
-
 			return false;
 		}
 
@@ -404,8 +360,11 @@ class CdnEngine_Azure extends CdnEngine_Base {
 		}
 
 		try {
-			$this->_client->createContainer( $this->_config['container'] );
-			$this->_client->setContainerAcl( $this->_config['container'], \Microsoft_WindowsAzure_Storage_Blob::ACL_PUBLIC_BLOB );
+    		$createContainerOptions = new \MicrosoftAzure\Storage\Blob\Models\CreateContainerOptions();
+    		$createContainerOptions->setPublicAccess(
+    			\MicrosoftAzure\Storage\Blob\Models\PublicAccessType::CONTAINER_AND_BLOBS );
+
+			$this->_client->createContainer( $this->_config['container'], $createContainerOptions );
 		} catch ( \Exception $exception ) {
 			$error = sprintf( 'Unable to create container: %s (%s)', $this->_config['container'], $exception->getMessage() );
 
@@ -442,33 +401,6 @@ class CdnEngine_Azure extends CdnEngine_Base {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Returns array of headers
-	 *
-	 * @param array   $file CDN file array
-	 * @return array
-	 */
-	function _get_headers( $file ) {
-		$allowed_headers = array(
-			'Content-Length',
-			'Content-Type',
-			'Content-Encoding',
-			'Content-Language',
-			'Content-MD5',
-			'Cache-Control',
-		);
-
-		$headers = parent::_get_headers( $file, true );
-
-		foreach ( $headers as $header => $value ) {
-			if ( !in_array( $header, $allowed_headers ) ) {
-				unset( $headers[$header] );
-			}
-		}
-
-		return $headers;
 	}
 
 	/**

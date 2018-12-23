@@ -313,8 +313,6 @@ class Util_Admin {
 						'cdn.azure.ssl',
 						'cdn.mirror.domain',
 						'cdn.mirror.ssl',
-						'cdn.netdna.domain',
-						'cdn.netdna.ssl',
 						'cdn.cotendo.domain',
 						'cdn.cotendo.ssl',
 						'cdn.edgecast.domain',
@@ -396,10 +394,12 @@ class Util_Admin {
 						'minify.csstidy.options.lowercase_s',
 						'minify.csstidy.options.optimise_shorthands',
 						'minify.csstidy.options.remove_last_;',
+						'minify.csstidy.options.remove_space_before_important',
 						'minify.csstidy.options.case_properties',
 						'minify.csstidy.options.sort_properties',
 						'minify.csstidy.options.sort_selectors',
 						'minify.csstidy.options.merge_selectors',
+						'minify.csstidy.options.discard_invalid_selectors',
 						'minify.csstidy.options.discard_invalid_properties',
 						'minify.csstidy.options.css_level',
 						'minify.csstidy.options.preserve_css',
@@ -740,30 +740,10 @@ class Util_Admin {
 	static public function get_current_page() {
 		$page = Util_Request::get_string( 'page' );
 
-		switch ( true ) {
-		case ( $page == 'w3tc_dashboard' ):
-		case ( $page == 'w3tc_general' ):
-		case ( $page == 'w3tc_pgcache' ):
-		case ( $page == 'w3tc_minify' ):
-		case ( $page == 'w3tc_dbcache' ):
-		case ( $page == 'w3tc_objectcache' ):
-		case ( $page == 'w3tc_fragmentcache' ):
-		case ( $page == 'w3tc_browsercache' ):
-		case ( $page == 'w3tc_mobile' ):
-		case ( $page == 'w3tc_referrer' ):
-		case ( $page == 'w3tc_cdn' ):
-		case ( $page == 'w3tc_extensions' ):
-		case ( $page == 'w3tc_install' ):
-		case ( $page == 'w3tc_faq' ):
-		case ( $page == 'w3tc_about' ):
-		case ( $page == 'w3tc_support' ):
-			break;
+		if ( substr( $page, 0, 5 ) == 'w3tc_' )
+			return $page;
 
-		default:
-			$page = 'w3tc_dashboard';
-		}
-
-		return $page;
+		return 'w3tc_dashboard';
 	}
 
 	/**

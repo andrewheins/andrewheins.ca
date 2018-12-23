@@ -43,7 +43,7 @@ class Root_AdminActivation {
 
 			// try to save config file if needed, optional thing so exceptions
 			// hidden
-			if ( !file_exists( Config::util_config_filename( 0, false ) ) ) {
+			if ( !ConfigUtil::is_item_exists( 0, false ) ) {
 				try {
 					// create folders
 					$e->fix_in_wpadmin( $config );
@@ -73,8 +73,7 @@ class Root_AdminActivation {
 
 		try {
 			$e = Dispatcher::component( 'Root_Environment' );
-			$config = Dispatcher::config();
-			$e->fix_after_deactivation( $config );
+			$e->fix_after_deactivation();
 
 			Generic_AdminLinks::link_delete();
 		} catch ( Util_Environment_Exceptions $exs ) {

@@ -4,6 +4,22 @@
  */
 
 
+final class ITSEC_Magic_Links_Settings_Page extends ITSEC_Module_Settings_Page {
+	public function __construct() {
+		$this->id = 'magic-links';
+		$this->title = __( 'Magic Links', 'better-wp-security' );
+		$this->description = __( 'Send an email with a Magic Link that bypasses a username lockout.', 'better-wp-security' );
+		$this->type = 'recommended';
+		$this->pro = true;
+		$this->upsell = true;
+		$this->upsell_url = 'http://ithemes.com/security/?utm_source=wordpressadmin&utm_medium=widget&utm_campaign=itsecfreecta';
+
+		parent::__construct();
+	}
+}
+new ITSEC_Magic_Links_Settings_Page();
+
+
 final class ITSEC_Malware_Scheduling_Settings_Page extends ITSEC_Module_Settings_Page {
 	public function __construct() {
 		$this->id = 'malware-scheduling';
@@ -34,22 +50,6 @@ final class ITSEC_Privilege_Escalation_Settings_Page extends ITSEC_Module_Settin
 	}
 }
 new ITSEC_Privilege_Escalation_Settings_Page();
-
-
-final class ITSEC_Password_Expiration_Settings_Page extends ITSEC_Module_Settings_Page {
-	public function __construct() {
-		$this->id = 'password-expiration';
-		$this->title = __( 'Password Expiration', 'better-wp-security' );
-		$this->description = __( 'Strengthen the passwords on the site with automated password expiration.', 'better-wp-security' );
-		$this->type = 'recommended';
-		$this->pro = true;
-		$this->upsell = true;
-		$this->upsell_url = 'https://ithemes.com/security/wordpress-password-security/?utm_source=wordpressadmin&utm_medium=widget&utm_campaign=itsecfreecta';
-
-		parent::__construct();
-	}
-}
-new ITSEC_Password_Expiration_Settings_Page();
 
 
 final class ITSEC_Recaptcha_Settings_Page extends ITSEC_Module_Settings_Page {
@@ -103,22 +103,6 @@ final class ITSEC_Two_Factor_Settings_Page extends ITSEC_Module_Settings_Page {
 new ITSEC_Two_Factor_Settings_Page();
 
 
-final class ITSEC_User_Logging_Settings_Page extends ITSEC_Module_Settings_Page {
-	public function __construct() {
-		$this->id = 'user-logging';
-		$this->title = __( 'User Logging', 'better-wp-security' );
-		$this->description = __( 'Log user actions such as login, saving content and others.', 'better-wp-security' );
-		$this->type = 'recommended';
-		$this->pro = true;
-		$this->upsell = true;
-		$this->upsell_url = 'https://ithemes.com/security/wordpress-user-log/?utm_source=wordpressadmin&utm_medium=widget&utm_campaign=itsecfreecta';
-
-		parent::__construct();
-	}
-}
-new ITSEC_User_Logging_Settings_Page();
-
-
 final class ITSEC_User_Security_Check_Settings_Page extends ITSEC_Module_Settings_Page {
 	public function __construct() {
 		$this->id = 'user-security-check';
@@ -133,6 +117,22 @@ final class ITSEC_User_Security_Check_Settings_Page extends ITSEC_Module_Setting
 	}
 }
 new ITSEC_User_Security_Check_Settings_Page();
+
+
+final class ITSEC_User_Logging_Settings_Page extends ITSEC_Module_Settings_Page {
+	public function __construct() {
+		$this->id = 'user-logging';
+		$this->title = __( 'User Logging', 'better-wp-security' );
+		$this->description = __( 'Log user actions such as login, saving content and others.', 'better-wp-security' );
+		$this->type = 'recommended';
+		$this->pro = true;
+		$this->upsell = true;
+		$this->upsell_url = 'https://ithemes.com/security/wordpress-user-log/?utm_source=wordpressadmin&utm_medium=widget&utm_campaign=itsecfreecta';
+
+		parent::__construct();
+	}
+}
+new ITSEC_User_Logging_Settings_Page();
 
 
 final class ITSEC_Version_Management_Settings_Page extends ITSEC_Module_Settings_Page {

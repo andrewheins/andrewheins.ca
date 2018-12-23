@@ -67,7 +67,7 @@ class Generic_Plugin_Admin {
 		if ( is_network_admin() ) {
 			add_action( 'network_admin_menu', array(
 					$this,
-					'admin_menu'
+					'network_admin_menu'
 				) );
 			add_filter( 'network_admin_plugin_action_links_' . W3TC_FILE, array(
 					$this,
@@ -172,7 +172,7 @@ class Generic_Plugin_Admin {
 			wp_nonce_ays( 'w3tc' );
 
 		try {
-			$base_capability = apply_filters( 'w3tc_ajax', 'manage_options' );
+			$base_capability = apply_filters( 'w3tc_ajax_base_capability_', 'manage_options' );
 			$capability = apply_filters( 'w3tc_ajax_capability_' . $_REQUEST['w3tc_action'],
 				$base_capability );
 			if ( !empty( $capability ) && !current_user_can( $capability ) )
@@ -295,14 +295,14 @@ class Generic_Plugin_Admin {
 ?>
         <style type="text/css" media="screen">
         #toplevel_page_w3tc_dashboard .wp-menu-image {
-            background: url(<?php echo plugins_url( 'w3-total-cache/pub/img/w3tc-sprite.png' )?>) no-repeat 0 -32px !important;
+            background: url(<?php echo plugins_url( 'pub/img/w3tc-sprite.png', W3TC_FILE )?>) no-repeat 0 -32px !important;
         }
         #toplevel_page_w3tc_dashboard:hover .wp-menu-image,
         #toplevel_page_w3tc_dashboard.wp-has-current-submenu .wp-menu-image {
             background-position:0 0 !important;
         }
         #icon-edit.icon32-posts-casestudy {
-            background: url(<?php echo plugins_url( 'w3-total-cache/pub/img/w3tc-sprite.png' ) ?>) no-repeat;
+            background: url(<?php echo plugins_url( 'pub/img/w3tc-sprite.png', W3TC_FILE ) ?>) no-repeat;
         }
         /**
         * HiDPI Displays
@@ -313,7 +313,7 @@ class Generic_Plugin_Admin {
         (min-resolution: 120dpi) {
 
             #toplevel_page_w3tc_dashboard .wp-menu-image {
-                background-image: url(<?php echo plugins_url( 'w3-total-cache/pub/img/w3tc-sprite-retina.png' )?>) !important;
+                background-image: url(<?php echo plugins_url( 'pub/img/w3tc-sprite-retina.png', W3TC_FILE )?>) !important;
                 background-size: 30px 64px !important;
             }
             #toplevel_page_w3tc_dashboard:hover .wp-menu-image,
@@ -321,7 +321,7 @@ class Generic_Plugin_Admin {
                 background-position:0 0 !important;
             }
             #icon-edit.icon32-posts-casestudy {
-                background-image: url(<?php echo plugins_url( 'w3-total-cache/pub/img/w3tc-sprite-retina.png' ) ?>) !important;
+                background-image: url(<?php echo plugins_url( 'pub/img/w3tc-sprite-retina.png', W3TC_FILE ) ?>) !important;
                 background-size: 30px 64px !important;
             }
         }
@@ -329,14 +329,23 @@ class Generic_Plugin_Admin {
         <?php
 	}
 
+
+	function network_admin_menu() {
+		$this->_admin_menu( 'manage_network_options' );
+	}
+
+	function admin_menu() {
+		$this->_admin_menu( 'manage_options' );
+	}
+
 	/**
 	 * Admin menu
 	 *
 	 * @return void
 	 */
-	function admin_menu() {
+	private function _admin_menu( $base_capability ) {
 		$base_capability = apply_filters( 'w3tc_capability_menu',
-			'manage_options' );
+			$base_capability );
 
 		if ( current_user_can( $base_capability ) ) {
 			$menus = Dispatcher::component( 'Root_AdminMenu' );
@@ -362,7 +371,11 @@ class Generic_Plugin_Admin {
 				add_action( 'admin_print_styles', array( $this, 'print_plugins_page_css' ) );
 			}
 
-			if ( $this->is_w3tc_page ) {
+			global $pagenow;
+			if ( $pagenow == 'plugins.php' || $this->is_w3tc_page ||
+				isset( $_REQUEST['w3tc_note'] ) ||
+				isset( $_REQUEST['w3tc_error'] ) ||
+				isset( $_REQUEST['w3tc_message'] ) ) {
 				/**
 				 * Only admin can see W3TC notices and errors
 				 */
@@ -463,8 +476,8 @@ class Generic_Plugin_Admin {
 		$n = 0;
 
 		foreach ( $sections as $section => $data ) {
-			$content = '<div class="w3tchelp_content w3tchelp_section_' .
-				md5( $section ) . '"></div>';
+			$content = '<div class="w3tchelp_content" data-section="' .
+				$section . '"></div>';
 
 			$screen->add_help_tab( array(
 					'id' => 'w3tc_faq_' . $n,
@@ -476,24 +489,17 @@ class Generic_Plugin_Admin {
 	}
 
 	public function w3tc_ajax_faq() {
-		$sections = Generic_Faq::sections();
-		$faq = Generic_Faq::parse();
+		$section = $_REQUEST['section'];
 
+		$entries = Generic_Faq::parse( $section );
 		$response = array();
 
-		foreach ( $sections as $section => $data ) {
-			$entries = $faq[$section];
-			$columns = array_chunk( $entries, ceil( count( $entries ) / 3 ) );
+		ob_start();
+		include W3TC_DIR . '/Generic_Plugin_Admin_View_Faq.php';
+		$content = ob_get_contents();
+		ob_end_clean();
 
-			ob_start();
-			include W3TC_INC_OPTIONS_DIR . '/common/help.php';
-			$content = ob_get_contents();
-			ob_end_clean();
-
-			$response[md5( $section )] = $content;
-		}
-
-		echo json_encode( $response );
+		echo json_encode( array( 'content' => $content ) );
 	}
 
 
@@ -508,7 +514,7 @@ class Generic_Plugin_Admin {
 		array_unshift( $links,
 			'<a class="edit" href="admin.php?page=w3tc_general">Settings</a>' );
 		array_unshift( $links,
-			'<a class="delete" href="admin.php?page=w3tc_support">Premium Support</a>' );
+			'<a class="edit" style="color: red" href="admin.php?page=w3tc_support">Premium Support</a>' );
 
 
 		if ( !is_writable( WP_CONTENT_DIR ) ||
@@ -648,7 +654,7 @@ class Generic_Plugin_Admin {
 			'flush_minify' => __( 'Minify cache successfully emptied.', 'w3-total-cache' ),
 			'flush_browser_cache' => __( 'Media Query string has been successfully updated.', 'w3-total-cache' ),
 			'flush_varnish' => __( 'Varnish servers successfully purged.', 'w3-total-cache' ),
-			'flush_cdn' => __( 'CDN was successfully purged.', 'w3-total-cache' ),
+			'flush_cdn' => __( '<acronym title="Content Delivery Network">CDN</acronym> was successfully purged.', 'w3-total-cache' ),
 			'support_request' => __( 'The support request has been successfully sent.', 'w3-total-cache' ),
 			'config_import' => __( 'Settings successfully imported.', 'w3-total-cache' ),
 			'config_reset' => __( 'Settings successfully restored.', 'w3-total-cache' ),
@@ -703,15 +709,12 @@ class Generic_Plugin_Admin {
          * Filesystem environment fix, if needed
          */
 		try {
-			global $pagenow;
-			if ( $pagenow == 'plugins.php' || Util_Admin::is_w3tc_admin_page() ) {
-				$environment = Dispatcher::component( 'Root_Environment' );
-				$environment->fix_in_wpadmin( $this->_config );
+			$environment = Dispatcher::component( 'Root_Environment' );
+			$environment->fix_in_wpadmin( $this->_config );
 
-				if ( isset( $_REQUEST['upgrade'] ) )
-					$notes[] = __( 'Required files and directories have been automatically created',
-						'w3-total-cache' );
-			}
+			if ( isset( $_REQUEST['upgrade'] ) )
+				$notes[] = __( 'Required files and directories have been automatically created',
+					'w3-total-cache' );
 		} catch ( Util_Environment_Exceptions $exs ) {
 			$r = Util_Activation::parse_environment_exceptions( $exs );
 			$n = 1;

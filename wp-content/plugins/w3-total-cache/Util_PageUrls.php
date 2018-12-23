@@ -500,7 +500,9 @@ class Util_PageUrls {
 
 		$base = trailingslashit( get_bloginfo( 'url' ) );
 
-		if ( $wp_rewrite->using_index_permalinks() && ( $pagenum > 1 || '' != $request ) )
+		if ( !is_null( $wp_rewrite ) &&
+			$wp_rewrite->using_index_permalinks() &&
+			( $pagenum > 1 || '' != $request ) )
 			$base .= 'index.php/';
 
 		if ( $pagenum > 1 ) {
@@ -524,7 +526,7 @@ class Util_PageUrls {
 		if ( isset( $GLOBALS['post'] ) && is_object( $GLOBALS['post'] ) ) {
 			$old_post = &$GLOBALS['post'];
 		} else {
-			$GLOBALS['post'] = new stdClass();
+			$GLOBALS['post'] = new \stdClass();
 			$old_post = null;
 		}
 
@@ -730,6 +732,52 @@ class Util_PageUrls {
 		return $link;
 	}
 
+	static public function get_rest_posts_urls() {
+		static $posts_urls = array();
+
+		if ( empty( $posts_urls ) ) {
+			$types = get_post_types( array( 'show_in_rest' => true ), 'objects' );
+			$wp_json_base = self::wp_json_base();
+
+			foreach ( $types as $post_type ) {
+				$rest_base = ( !empty( $post_type->rest_base ) ?
+					$post_type->rest_base : $post_type->name );
+
+				$posts_urls[] = $wp_json_base . $rest_base;
+			}
+		}
+
+		return $posts_urls;
+	}
+
+	static public function get_rest_post_urls( $post_id ) {
+		static $post_urls = array();
+
+		if ( !isset( $post_urls[$post_id] ) ) {
+			$post = get_post( $post_id );
+			$urls = array();
+			$wp_json_base = self::wp_json_base();
+
+			if ( $post ) {
+				$post_type = get_post_type_object( $post->post_type );
+				$rest_base = ( !empty( $post_type->rest_base ) ?
+					$post_type->rest_base : $post_type->name );
+
+				$urls[] = $wp_json_base . $rest_base . '/' . $post->ID;
+			}
+
+			$post_urls[$post_id] = $urls;
+		}
+
+		return $post_urls[$post_id];
+	}
+
+	static private function wp_json_base() {
+		$wp_json_base = rtrim( get_home_url(), '/' ) . W3TC_WP_JSON_URI;
+		$wp_json_base = apply_filters( 'w3tc_pageurls_wp_json_base', $wp_json_base );
+		return $wp_json_base;
+	}
+
 	static public function complement_with_mirror_urls( $queued_urls ) {
 		$config = Dispatcher::config();
 
@@ -740,21 +788,21 @@ class Util_PageUrls {
 		$home_urls = $config->get_array( 'pgcache.mirrors.home_urls' );
 
 		$url_prefix = trailingslashit( get_home_url() );
-		$urls = array_keys( $queued_urls );
+		$mirror_urls = array();
 
-		foreach ( $urls as $url ) {
+		foreach ( $queued_urls as $url ) {
 			if ( substr( $url, 0, strlen( $url_prefix ) ) != $url_prefix )
 				continue;
 
 			foreach ( $home_urls as $home ) {
 				if ( !empty( $home ) ) {
-					$mirror_url = $home . substr( $url, strlen( $url_prefix ) );
-					$queued_urls[$mirror_url] = '*';
+					$mirror_urls[] = trailingslashit( $home ) .
+						substr( $url, strlen( $url_prefix ) );
 				}
 			}
 		}
 
-		return $queued_urls;
+		return array_merge( $queued_urls, $mirror_urls );
 	}
 
 	static private function _term_hash( $terms ) {

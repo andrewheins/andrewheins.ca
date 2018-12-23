@@ -34,11 +34,12 @@ function wp_scripts() {
  * @param string $function Function name.
  */
 function _wp_scripts_maybe_doing_it_wrong( $function ) {
-	if ( did_action( 'init' ) ) {
+	if ( did_action( 'init' ) || did_action( 'admin_enqueue_scripts' ) || did_action( 'wp_enqueue_scripts' ) || did_action( 'login_enqueue_scripts' ) ) {
 		return;
 	}
 
 	_doing_it_wrong( $function, sprintf(
+		/* translators: 1: wp_enqueue_scripts, 2: admin_enqueue_scripts, 3: login_enqueue_scripts */
 		__( 'Scripts and styles should not be registered or enqueued until the %1$s, %2$s, or %3$s hooks.' ),
 		'<code>wp_enqueue_scripts</code>',
 		'<code>admin_enqueue_scripts</code>',
@@ -192,6 +193,32 @@ function wp_localize_script( $handle, $object_name, $l10n ) {
 }
 
 /**
+ * Sets translated strings for a script.
+ *
+ * Works only if the script has already been added.
+ *
+ * @see WP_Scripts::set_translations()
+ * @global WP_Scripts $wp_scripts The WP_Scripts object for printing scripts.
+ *
+ * @since 5.0.0
+ *
+ * @param string $handle Script handle the textdomain will be attached to.
+ * @param string $domain The textdomain.
+ * @param string $path   Optional. The full file path to the directory containing translation files.
+ *
+ * @return bool True if the textdomain was successfully localized, false otherwise.
+ */
+function wp_set_script_translations( $handle, $domain, $path = null ) {
+	global $wp_scripts;
+	if ( ! ( $wp_scripts instanceof WP_Scripts ) ) {
+		_wp_scripts_maybe_doing_it_wrong( __FUNCTION__ );
+		return false;
+	}
+
+	return $wp_scripts->set_translations( $handle, $domain, $path );
+}
+
+/**
  * Remove a registered script.
  *
  * Note: there are intentional safeguards in place to prevent critical admin scripts,
@@ -224,8 +251,12 @@ function wp_deregister_script( $handle ) {
 		);
 
 		if ( in_array( $handle, $no ) ) {
-			$message = sprintf( __( 'Do not deregister the %1$s script in the administration area. To target the front-end theme, use the %2$s hook.' ),
-				"<code>$handle</code>", '<code>wp_enqueue_scripts</code>' );
+			$message = sprintf(
+				/* translators: 1: script name, 2: wp_enqueue_scripts */
+				__( 'Do not deregister the %1$s script in the administration area. To target the front-end theme, use the %2$s hook.' ),
+				"<code>$handle</code>",
+				'<code>wp_enqueue_scripts</code>'
+			);
 			_doing_it_wrong( __FUNCTION__, $message, '3.6.0' );
 			return;
 		}
@@ -247,6 +278,7 @@ function wp_deregister_script( $handle ) {
  *
  * @param string           $handle    Name of the script. Should be unique.
  * @param string           $src       Full URL of the script, or path of the script relative to the WordPress root directory.
+ *                                    Default empty.
  * @param array            $deps      Optional. An array of registered script handles this script depends on. Default empty array.
  * @param string|bool|null $ver       Optional. String specifying script version number, if it has one, which is added to the URL
  *                                    as a query string for cache busting purposes. If version is set to false, a version
@@ -255,7 +287,7 @@ function wp_deregister_script( $handle ) {
  * @param bool             $in_footer Optional. Whether to enqueue the script before </body> instead of in the <head>.
  *                                    Default 'false'.
  */
-function wp_enqueue_script( $handle, $src = false, $deps = array(), $ver = false, $in_footer = false ) {
+function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) {
 	$wp_scripts = wp_scripts();
 
 	_wp_scripts_maybe_doing_it_wrong( __FUNCTION__ );
@@ -292,8 +324,12 @@ function wp_dequeue_script( $handle ) {
 }
 
 /**
- * Check whether a script has been added to the queue.
- *
+ * Determines whether a script has been added to the queue.
+ * 
+ * For more information on this and similar theme functions, check out
+ * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+ * Conditional Tags} article in the Theme Developer Handbook.
+ *  
  * @since 2.8.0
  * @since 3.5.0 'enqueued' added as an alias of the 'queue' list.
  *
